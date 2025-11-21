@@ -1,0 +1,701 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Dashboard</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#0d6efd">
+	<link rel="manifest" href="../manifest.json">
+	<link rel="icon" href="../favicon.ico" sizes="128x128">
+	<link rel="shortcut icon" href="../favicon.ico">
+	<link rel="apple-touch-icon" href="../favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f6fa;
+            color: #2c3e50;
+        }
+
+        #wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        #sidebar {
+            width: 250px;
+            background-color: #c4d3e5;
+            color: white;
+            padding: 20px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        #sidebar h2 {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #34495e;
+        }
+
+        #sidebar nav ul {
+            list-style: none;
+        }
+
+        #sidebar nav ul li {
+            margin-bottom: 10px;
+        }
+
+        #sidebar nav ul li a {
+            color: #34495e;
+            text-decoration: none;
+            padding: 12px 15px;
+            display: block;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            font-family: "Roboto Slab", serif;
+        }
+
+        #sidebar nav ul li a:hover,
+        #sidebar nav ul li a.active {
+            background-color: #84b5d5;
+            transform: translateX(5px);
+        }
+
+        #main {
+            margin-left: 250px;
+            flex: 1;
+            padding: 40px;
+            width: calc(100% - 250px);
+            /* font-family: "Roboto Slab", serif; */
+        }
+
+        .header-section {
+            margin-bottom: 40px;
+        }
+
+        .header-section h1 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-family: "Roboto Slab", serif;
+        }
+
+        .header-section h5 {
+            color: #7f8c8d;
+            font-weight: normal;
+            font-size: 1.1rem;
+        }
+
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /*.card:hover {
+           transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12); 
+        }*/
+
+        .card .main-text {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-family: "Roboto Slab", serif;
+        }
+
+        .card .text-muted {
+            color: #95a5a6;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        .barra-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #ecf0f1;
+            border-radius: 3px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .card:nth-child(1) .barra-bar div {
+            width: 70%;
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            border-radius: 3px;
+        }
+
+        .card:nth-child(2) .barra-bar div {
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            border-radius: 3px;
+        }
+
+        .card:nth-child(3) .barra-bar div {
+            width: 25%;
+            height: 100%;
+            background: linear-gradient(90deg, #f39c12, #e67e22);
+            border-radius: 3px;
+        }
+
+        .card:nth-child(4) .barra-bar div {
+            width: 5%;
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+            border-radius: 3px;
+        }
+
+        .change {
+            color: #27ae60;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .change::before {
+            content: '▲ ';
+        }
+
+        .user-image {
+            margin: 25px auto;
+            -webkit-border-radius: 10px;
+            -moz-border-radius: 10px;
+            border-radius: 10px;
+            max-height:70px;
+            max-width:70px;
+        }
+
+        @media screen and (max-width: 1024px) {
+            #sidebar {
+                width: 200px;
+            }
+
+            #main {
+                margin-left: 200px;
+                width: calc(100% - 200px);
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            #sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 15px;
+            }
+
+            #main {
+                margin-left: 0;
+                width: 100%;
+                padding: 20px;
+            }
+
+            .header-section h1 {
+                font-size: 2rem;
+            }
+
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+            }
+
+            #sidebar h2 {
+                font-size: 1.3rem;
+                margin-bottom: 20px;
+            }
+
+            #sidebar nav ul li a {
+                padding: 10px 12px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            #main {
+                padding: 15px;
+            }
+
+            .header-section h1 {
+                font-size: 1.7rem;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .card .main-text {
+                font-size: 1.6rem;
+            }
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 24px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-bottom: 20px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-purple { background: #a855f7; }
+        .dot-pink { background: #ec4899; }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .server-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .server-subtitle {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-bottom: 24px;
+        }
+
+        .stat-item {
+            margin-bottom: 20px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            font-size: 13px;
+            border: none;
+            background: none;
+            color: #6b7280;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .btn:hover {
+            color: #1f2937;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="wrapper">
+        <div id="sidebar">
+            <div class="inner">
+                <nav id="menu">
+                    
+                    <ul>
+                        <li style="text-align:center;">
+                    <img src="../find_user.png" class="user-image img-responsive"/>
+					</li>
+                        <li><a href="../inicio.html">Inicio</a></li>
+                        <li><a href="admin.html" class="active">Dashboard</a></li>
+                        <li><a href="examenes.html">Examenes</a></li>
+                        <li><a href="preguntas.html">Preguntas</a></li>
+                        <li><a href="respuestas.html">Respuestas</a></li>
+                        <li><a href="llenados.html">Llenados</a></li>
+                        <li><a href="notificaciones.html">Notificaciones</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <div id="main">
+            <div class="header-section">
+                <h1>Admin Dashboard</h1>
+                <h5>Bienvenido admin!</h5>
+            </div>
+
+            <div class="dashboard-cards">
+                <div class="card">
+                    <p class="main-text">120 Examenes</p>
+                    <p class="text-muted">Examenes respondidos</p>
+                    <div class="barra-bar">
+                        <div></div>
+                    </div>
+                    <p class="change">70% Desde la ultima semana</p>
+                </div>
+
+                <div class="card">
+                    <p class="main-text">30 Respuestas</p>
+                    <p class="text-muted">Respuestas recibidas</p>
+                    <div class="barra-bar">
+                        <div></div>
+                    </div>
+                    <p class="change">40% Desde la ultima semana</p>
+                </div>
+
+                <div class="card">
+                    <p class="main-text">16 Terminados</p>
+                    <p class="text-muted">Examenes terminados</p>
+                    <div class="barra-bar">
+                        <div></div>
+                    </div>
+                    <p class="change">25% Desde la ultima semana</p>
+                </div>
+
+                <div class="card">
+                    <p class="main-text">3 Notificaciones</p>
+                    <p class="text-muted">Notificaciones sin leer</p>
+                    <div class="barra-bar">
+                        <div></div>
+                    </div>
+                    <p class="change">5% Desde la ultima semana</p>
+                </div>
+            </div>
+             <div class="dashboard">
+        <!-- Network Performance Card -->
+        <div class="card">
+            <h2 class="card-title">ESTADISTICAS ANUALES</h2>
+            <p class="card-subtitle">Grafica de resultados del sitio</p>
+            
+            <!-- <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot dot-blue"></div>
+                    <span>TCP Reset Packets</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot dot-pink"></div>
+                    <span>TCP FIN Packets</span>
+                </div>
+            </div> -->
+
+            <div class="chart-container">
+                <canvas id="networkChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Server Status Card -->
+        <div class="card">
+            <h2 class="server-title">ESTATUS EXAMENES</h2>
+            <p class="server-subtitle">Resumen del estado de los examenes</p>
+
+            <div class="stat-item">
+                <div class="stat-label">Examen Parcial I AWP (40%)</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 40%; background: #3b82f6;"></div>
+                </div>
+            </div>
+
+            <div class="stat-item">
+                <div class="stat-label">Examen Ingles (32.2%)</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 32%; background: #14b8a6;"></div>
+                </div>
+            </div>
+
+            <div class="stat-item">
+                <div class="stat-label">Examen CDV (82.2%)</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 82%; background: #ef4444;"></div>
+                </div>
+            </div>
+
+            <div class="stat-item">
+                <div class="stat-label">Examen DMI (90%)</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 90%; background: #8b5cf6;"></div>
+                </div>
+            </div>
+<!-- 
+            <div class="stat-item">
+                <div class="stat-label">Databases (63/100)</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 63%; background: #f97316;"></div>
+                </div>
+            </div> -->
+
+            <div class="stat-item">
+                <div class="stat-label">Alumnos calificados (30/50)</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 60%; background: #06b6d4;"></div>
+                </div>
+            </div>
+
+            <!-- <div class="stat-item">
+                <div class="stat-label">Email Account (13/50)</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 26%; background: #8b5cf6;"></div>
+                </div>
+            </div> -->
+
+            <!-- <div class="buttons">
+                <button class="btn">Generate Report</button>
+                <button class="btn">Print Report</button>
+            </div> -->
+        </div>
+    </div>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('networkChart');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            drawChart();
+        }
+
+        const data = {
+            labels: [1, 2, 3, 4, 5, 6, 7, 8],
+            reset: [5, 8, 6, 7, 4, 2, 4, 3],
+            fin: [10, 14, 9, 17, 7, 10, 15, 9]
+        };
+
+        function drawChart() {
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            const padding = { top: 20, right: 30, bottom: 40, left: 50 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Grid
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 6; i++) {
+                const y = padding.top + (chartHeight / 6) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+            }
+
+            // Y-axis labels
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= 6; i++) {
+                const y = padding.top + (chartHeight / 6) * i;
+                const value = 30 - (i * 5);
+                ctx.fillText(value, padding.left - 10, y + 4);
+            }
+
+            // X-axis labels
+            ctx.textAlign = 'center';
+            data.labels.forEach((label, i) => {
+                const x = padding.left + (chartWidth / (data.labels.length - 1)) * i;
+                ctx.fillText(label, x, height - padding.bottom + 20);
+            });
+
+            // Draw FIN area (cyan)
+            ctx.beginPath();
+            data.fin.forEach((value, i) => {
+                const x = padding.left + (chartWidth / (data.labels.length - 1)) * i;
+                const y = padding.top + chartHeight - (value / 30) * chartHeight;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.lineTo(width - padding.right, height - padding.bottom);
+            ctx.lineTo(padding.left, height - padding.bottom);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.15)';
+            ctx.fill();
+
+            // Draw FIN line (cyan)
+            ctx.beginPath();
+            data.fin.forEach((value, i) => {
+                const x = padding.left + (chartWidth / (data.labels.length - 1)) * i;
+                const y = padding.top + chartHeight - (value / 30) * chartHeight;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw FIN points
+            data.fin.forEach((value, i) => {
+                const x = padding.left + (chartWidth / (data.labels.length - 1)) * i;
+                const y = padding.top + chartHeight - (value / 30) * chartHeight;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#06b6d4';
+                ctx.fill();
+            });
+
+            // Draw Reset line (blue)
+            ctx.beginPath();
+            data.reset.forEach((value, i) => {
+                const x = padding.left + (chartWidth / (data.labels.length - 1)) * i;
+                const y = padding.top + chartHeight - (value / 30) * chartHeight;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = '#0ea5e9';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw Reset points
+            data.reset.forEach((value, i) => {
+                const x = padding.left + (chartWidth / (data.labels.length - 1)) * i;
+                const y = padding.top + chartHeight - (value / 30) * chartHeight;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#0ea5e9';
+                ctx.fill();
+            });
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+
+    <script type="module">
+        import { solicitarPermisoYGenerarToken } from '../firebase-init.js';
+
+        window.addEventListener('load', async () => {
+            const usuario = localStorage.getItem('usuario');
+
+            if (!usuario) {
+                console.warn("no hay usuario autenticado en localStorage.");
+                window.location.href = "../login.html";
+            }
+
+            if (usuario) {
+                console.log("usuario autenticado:", usuario);
+                
+                const token = await solicitarPermisoYGenerarToken();
+
+                if (token) {
+                    console.log("token generado:", token);
+
+                    try {
+                        const res = await fetch('../api/actualizar_token.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: usuario, token })
+                        });
+
+                        const data = await res.json();
+                        console.log("respuesta del backend:", data);
+                    } catch (error) {
+                        console.error("error al enviar token al backend:", error);
+                    }
+                } else {
+                    console.warn("no se pudo generar el token o el usuario negó permisos.");
+                }
+            } else {
+                console.warn("no hay usuario autenticado en localStorage.");
+            }
+        });
+</script>
+
+<!-- 
+    <script src="../assets/js/jquery.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../assets/js/browser.min.js"></script>
+    <script src="../assets/js/breakpoints.min.js"></script>
+    <script src="../assets/js/util.js"></script>
+    <script src="../assets/js/main.js"></script>
+
+    <!-- service worker scripts -->
+    <script src="../pwa-constants.js" charset="utf-8"></script>
+    <script src="../pwa-installer.js" charset="utf-8"></script>
+    <script src="../pwa-sw.js" charset="utf-8"></script>
+    <script src="../pwa-network.js" charset="utf-8"></script>
+</body>
+</html>
