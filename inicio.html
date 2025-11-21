@@ -1,0 +1,612 @@
+<!DOCTYPE HTML>
+<!--
+	Editorial by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Examenes</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css"/>
+		<meta name="theme-color" content="#0d6efd">
+		<link rel="manifest" href="manifest.json">
+		<link rel="icon" href="favicon.ico" sizes="128x128">
+		<link rel="shortcut icon" href="favicon.ico">
+		<link rel="apple-touch-icon" href="favicon.ico">
+		<style>
+			.notification-badge {
+				position: relative;
+				display: inline-block;
+			}
+			
+			.badge-count {
+				position: absolute;
+				top: -8px;
+				right: -8px;
+				background: #dc3545;
+				color: white;
+				border-radius: 50%;
+				width: 20px;
+				height: 20px;
+				font-size: 0.7rem;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-weight: bold;
+			}
+			
+			.notification-item {
+				padding: 15px;
+				border-bottom: 1px solid #eee;
+				cursor: pointer;
+				transition: background-color 0.3s;
+			}
+			
+			.notification-item:hover {
+				background-color: #f8f9fa;
+			}
+			
+			.notification-item.unread {
+				background-color: #e7f3ff;
+				border-left: 4px solid #0d6efd;
+			}
+			
+			.notification-time {
+				font-size: 0.8rem;
+				color: #6c757d;
+				margin-top: 5px;
+			}
+			
+			.notification-actions {
+				margin-top: 10px;
+			}
+
+			/* Estilos para el perfil */
+			.profile-section {
+				padding: 20px;
+				border-bottom: 1px solid #eee;
+			}
+
+			.profile-header {
+				display: flex;
+				align-items: center;
+				margin-bottom: 20px;
+			}
+
+			.profile-avatar {
+				width: 60px;
+				height: 60px;
+				border-radius: 50%;
+				background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				color: white;
+				font-size: 1.5rem;
+				margin-right: 15px;
+			}
+
+			.profile-info h3 {
+				margin: 0;
+				color: #333;
+			}
+
+			.profile-info p {
+				margin: 5px 0 0 0;
+				color: #666;
+				font-size: 0.9rem;
+			}
+
+			.profile-details {
+				background: #f8f9fa;
+				padding: 15px;
+				border-radius: 8px;
+				margin-top: 15px;
+			}
+
+			.detail-item {
+				display: flex;
+				justify-content: space-between;
+				padding: 8px 0;
+				border-bottom: 1px solid #e9ecef;
+			}
+
+			.detail-item:last-child {
+				border-bottom: none;
+			}
+
+			.detail-label {
+				font-weight: 500;
+				color: #555;
+			}
+
+			.detail-value {
+				color: #333;
+			}
+
+			.profile-stats {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 10px;
+				margin-top: 20px;
+			}
+
+			.stat-card {
+				background: white;
+				padding: 15px;
+				border-radius: 8px;
+				text-align: center;
+				border: 1px solid #e9ecef;
+			}
+
+			.stat-number {
+				font-size: 1.5rem;
+				font-weight: bold;
+				color: #0d6efd;
+				display: block;
+			}
+
+			.stat-label {
+				font-size: 0.8rem;
+				color: #666;
+				margin-top: 5px;
+			}
+
+			/* Modal del perfil */
+			.profile-modal {
+				display: none;
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0,0,0,0.5);
+				z-index: 10000;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.profile-modal-content {
+				background: white;
+				border-radius: 10px;
+				width: 90%;
+				max-width: 500px;
+				max-height: 90vh;
+				overflow-y: auto;
+				box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+			}
+
+			.profile-modal-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 20px;
+				border-bottom: 1px solid #eee;
+			}
+
+			.profile-modal-header h3 {
+				margin: 0;
+				color: #333;
+			}
+
+			.close-profile {
+				background: none;
+				border: none;
+				font-size: 1.5rem;
+				cursor: pointer;
+				color: #666;
+			}
+
+			.close-profile:hover {
+				color: #333;
+			}
+		</style>
+	</head>
+	<body class="is-preload">
+			<div id="wrapper">
+					<div id="main">
+						<div class="inner">
+								<header id="header">
+									<a href="inicio.html" class="logo"><strong>Inicio</strong> Sistema examenes</a>
+									<ul class="icons">
+										<li class="notification-badge">
+											<a href="modulos/notificaciones.html" class="icon solid fa-bell">
+												<span class="badge-count" id="notificationCount">0</span>
+											</a>
+										</li>
+									</ul>
+								</header>
+
+								<section id="banner">
+									<div class="content">
+										<header>
+											<h1>Plataforma de examenes</h1>
+											<p>Sitio web de administracion de examenes</p>
+										</header>
+										<p>Con esta plataforma dirigida a instituciones educativas, permite 
+												administrar examenes, preguntas, respuestas y seguimiento de llenados. Utiliza el menu superior a la 
+												izquierda para acceder a los modulos.</p>
+
+										<div class="col-6 col-12-small">
+											<ul class="actions stacked">
+												<li><a href="modulos/examenes.html" class="button fit">Comenzar</a></li>
+											</ul>
+										</div>
+									</div>
+									<span class="image object">
+										<img src="inicio1.jpg" alt="" />
+									</span>
+								</section>
+
+							<!-- Section -->
+								<section>
+									<header class="major">
+										<h2>¿Por que elegir nuestra plataforma?</h2>
+									</header>
+									<div class="features">
+										<article>
+											<span class="icon fa-gem"></span>
+											<div class="content">
+												<h3>Evaluaciones inteligentes</h3>
+												<p>Crea exámenes adaptativos que se ajustan al nivel de conocimiento de cada estudiante 
+													para una evaluación más precisa.</p>
+											</div>
+										</article>
+										<article>
+											<span class="icon solid fa-paper-plane"></span>
+											<div class="content">
+												<h3>Multiplataforma</h3>
+												<p>Acceso desde cualquier dispositivo: computadora, tablet o smartphone. 
+													Interfaz responsive y optimizada.</p>
+											</div>
+										</article>
+										<article>
+											<span class="icon solid fa-rocket"></span>
+											<div class="content">
+												<h3>Rapido y eficiente</h3>
+												<p>Funcionamiento correcto garantizado, con informacion precisa y relacionada entre modulos.</p>
+											</div>
+										</article>
+										<article>
+											<span class="icon solid fa-signal"></span>
+											<div class="content">
+												<h3>Analisis detallado</h3>
+												<p>Obtén reportes completos con métricas avanzadas, estadísticas de rendimiento y 
+													áreas de mejora identificadas automáticamente.</p>
+											</div>
+										</article>
+									</div>
+								</section>
+
+								<section>
+									<header class="major">
+										<h2>Exámenes Disponibles</h2>
+									</header>
+									<div class="box">
+										<article id="exam-1">
+											<div class="exam-card">
+												<h3 class="exam-title">Examen Teorico Parcial 1 AS</h3>
+												<p class="exam-meta">Examen teorico del primer parcial de arquitecturas de software.</p>
+												<p><strong>2 preguntas</strong> • <strong>7.5 puntos cada una</strong></p>
+												<ul class="actions fit small">
+														<li><a href="#" class="button primary fit small">Ver detalles</a></li>
+													</ul>
+											</div>
+										</article>
+									</div>
+								</section>	
+								
+								<section>
+									<div class="row gtr-200">
+										<div class="col-6 col-12-medium">
+											<div class="row">
+												<div class="col-6 col-12-small">
+													<div class="box">
+														<h4 style="text-align: center;">Exámenes</h4>
+														<div class="features">
+															<article style="margin-left: 70px;">
+																<span class="icon solid fa-clipboard-list"></span>
+															</article>
+														</div>
+														<p style="text-align: center;">Administra y crea nuevos exámenes.</p>														
+														<ul class="actions fit small">
+															<li><a href="modulos/examenes.html" class="button primary fit small">Ir a examenes</a></li>
+														</ul>
+													</div>														
+												</div>
+
+												<div class="col-6 col-12-small">
+													<div class="box">
+														<h4 style="text-align: center;">Acceder a Preguntas</h4>
+														<div class="features">
+															<article style="margin-left: 70px;">
+																<span class="icon solid fa-question-circle"></span>
+															</article>
+														</div>
+														<p style="text-align: center;">Consulta el banco de preguntas.</p>
+														<ul class="actions fit small">
+															<li><a href="modulos/preguntas.html" class="button primary fit small">Ir a preguntas</a></li>
+														</ul>
+													</div>													
+												</div>
+											</div>
+										</div>
+										
+										<div class="col-6 col-12-medium">
+											<div class="row">
+												<div class="col-6 col-12-small">
+													<div class="box">
+														<h4 style="text-align: center;">Respuestas</h4>
+														<div class="features">
+															<article style="margin-left: 70px;">
+																<span class="icon solid fa-check-circle"></span>
+															</article>
+														</div>
+														<p style="text-align: center;">Revisa las respuestas correctas.</p>
+														<ul class="actions fit small">
+															<li><a href="modulos/respuestas.html" class="button primary fit small">Ir a respuestas</a></li>
+														</ul>
+													</div>														
+												</div>
+
+												<div class="col-6 col-12-small">
+													<div class="box">
+														<h4 style="text-align: center;">Llenados</h4>
+														<div class="features">
+															<article style="margin-left: 70px;">
+																<span class="icon solid fa-chart-bar"></span>
+															</article>
+														</div>
+														<p style="text-align: center;">Consulta los llenados realizados.</p>
+														<ul class="actions fit small">
+															<li><a href="modulos/llenados.html" class="button primary fit small">Ir a llenados</a></li>
+														</ul>
+													</div>															
+												</div>
+											</div>
+										</div>
+									</div>
+								</section>
+
+								<!-- Nuevo módulo de notificaciones en la página principal -->
+								<section>
+									<header class="major">
+										<h2>Notificaciones Recientes</h2>
+									</header>
+									<div class="box" id="recentNotifications">
+										<!-- Las notificaciones se cargarán aquí dinámicamente -->
+										<p>Cargando notificaciones...</p>
+									</div>
+								</section>
+
+								<footer id="footer">
+									<p class="copyright">&copy; Examenes. All rights reserved.</p>
+								</footer>
+
+						</div>
+					</div>
+
+				<!-- Sidebar -->
+					<div id="sidebar">
+						<div class="inner">
+							<!-- Botón de perfil en la parte superior del menú -->
+							<div class="profile-section">
+								<div class="profile-header">
+									<div class="profile-avatar" id="userAvatar">
+										A
+									</div>
+									<div class="profile-info">
+										<h3 id="userName">Alumno</h3>
+										<p id="userRole">Estudiante</p>
+									</div>
+								</div>
+								<button class="button small fit" onclick="mostrarPerfil()" style="margin-bottom: 5px;">Ver Perfil</button>
+								<button class="button small fit" onclick="cerrarSesion()">Cerrar Sesion</button>
+							</div>
+							<nav id="menu">
+								<ul>
+									<li><a href="inicio.html">Inicio</a></li>
+									<li><a href="modulos/admin.html">Panel administrador</a></li>
+									<li><a href="modulos/examenes.html">Examenes</a></li>
+									<li><a href="modulos/preguntas.html">Preguntas</a></li>
+									<li><a href="modulos/respuestas.html">Respuestas</a></li>
+									<li><a href="modulos/llenados.html">Llenados</a></li>
+									<li><a href="modulos/notificaciones.html">Notificaciones</a></li>
+								</ul>
+							</nav>
+						</div>
+					</div>
+
+			</div>
+
+			<!-- Modal del Perfil -->
+			<div class="profile-modal" id="profileModal">
+				<div class="profile-modal-content">
+					<div class="profile-modal-header">
+						<h3>Mi Perfil</h3>
+						<button class="close-profile" onclick="cerrarPerfil()">&times;</button>
+					</div>
+					<div class="profile-section">
+						<div class="profile-header">
+							<div class="profile-avatar" id="modalAvatar">
+								A
+							</div>
+							<div class="profile-info">
+								<h3 id="modalUserName">Alumno</h3>
+								<p id="modalUserRole">Estudiante</p>
+							</div>
+						</div>
+						
+						<div class="profile-details">
+							<div class="detail-item">
+								<span class="detail-label">Matrícula:</span>
+								<span class="detail-value" id="modalMatricula">A123456</span>
+							</div>
+							<div class="detail-item">
+								<span class="detail-label">Carrera:</span>
+								<span class="detail-value" id="modalCarrera">Ingeniería en Software</span>
+							</div>
+							<div class="detail-item">
+								<span class="detail-label">Semestre:</span>
+								<span class="detail-value" id="modalSemestre">6° Semestre</span>
+							</div>
+							<div class="detail-item">
+								<span class="detail-label">Email:</span>
+								<span class="detail-value" id="modalEmail">alumno@universidad.edu</span>
+							</div>
+							<div class="detail-item">
+								<span class="detail-label">Teléfono:</span>
+								<span class="detail-value" id="modalTelefono">+52 55 1234 5678</span>
+							</div>
+						</div>
+
+						<div class="profile-stats">
+							<div class="stat-card">
+								<span class="stat-number" id="statExamenes">3</span>
+								<span class="stat-label">Exámenes Realizados</span>
+							</div>
+							<div class="stat-card">
+								<span class="stat-number" id="statPromedio">8.5</span>
+								<span class="stat-label">Promedio General</span>
+							</div>
+							<div class="stat-card">
+								<span class="stat-number" id="statPendientes">1</span>
+								<span class="stat-label">Exámenes Pendientes</span>
+							</div>
+							<div class="stat-card">
+								<span class="stat-number" id="statNotificaciones">2</span>
+								<span class="stat-label">Notificaciones</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+			<!-- Script para notificaciones y perfil -->
+			<script>
+				// cloudflared tunnel --url http://localhost:80
+				// Datos del usuario (en un caso real, esto vendría del login)
+				const usuario = {
+					nombre: "Alumno",
+					rol: "Estudiante",
+					matricula: "A123456",
+					carrera: "Ingeniería en Software",
+					semestre: "6° Semestre",
+					email: "alumno@universidad.edu",
+					telefono: "+52 55 1234 5678",
+					examenesRealizados: 3,
+					promedioGeneral: 8.5,
+					examenesPendientes: 1,
+					notificaciones: 2
+				};
+
+				// Función para cargar notificaciones
+				function cargarNotificaciones() {
+					// Simulamos la carga de notificaciones (en un caso real, harías una petición AJAX)
+					const notificaciones = [
+						{
+							id: 1,
+							titulo: "Nuevo Examen Disponible",
+							mensaje: "Se ha agregado el examen 'Examen Teorico Parcial 1 AS'",
+							fecha: "2024-01-15 10:30",
+							leida: false,
+							tipo: "nuevo_examen"
+						},
+						{
+							id: 2,
+							titulo: "Examen Revisado",
+							mensaje: "El administrador ha revisado tu examen 'Examen Teorico Parcial 1 AS'",
+							fecha: "2024-01-14 16:45",
+							leida: false,
+							tipo: "examen_revisado"
+						},
+						{
+							id: 3,
+							titulo: "Recordatorio",
+							mensaje: "Tienes un examen pendiente por realizar",
+							fecha: "2024-01-13 09:15",
+							leida: true,
+							tipo: "recordatorio"
+						}
+					];
+
+					// Actualizar contador
+					const noLeidas = notificaciones.filter(n => !n.leida).length;
+					document.getElementById('notificationCount').textContent = noLeidas;
+
+					// Mostrar notificaciones recientes
+					const container = document.getElementById('recentNotifications');
+					container.innerHTML = '';
+
+					notificaciones.slice(0, 3).forEach(notif => {
+						const notifElement = document.createElement('div');
+						notifElement.className = `notification-item ${!notif.leida ? 'unread' : ''}`;
+						notifElement.innerHTML = `
+							<strong>${notif.titulo}</strong>
+							<p style="margin: 5px 0;">${notif.mensaje}</p>
+							<div class="notification-time">${notif.fecha}</div>
+						`;
+						container.appendChild(notifElement);
+					});
+
+					if (notificaciones.length === 0) {
+						container.innerHTML = '<p>No hay notificaciones nuevas</p>';
+					}
+				}
+
+				// Funciones para el perfil
+				function mostrarPerfil() {
+					// Actualizar datos en el modal
+					document.getElementById('modalUserName').textContent = usuario.nombre;
+					document.getElementById('modalUserRole').textContent = usuario.rol;
+					document.getElementById('modalMatricula').textContent = usuario.matricula;
+					document.getElementById('modalCarrera').textContent = usuario.carrera;
+					document.getElementById('modalSemestre').textContent = usuario.semestre;
+					document.getElementById('modalEmail').textContent = usuario.email;
+					document.getElementById('modalTelefono').textContent = usuario.telefono;
+					document.getElementById('statExamenes').textContent = usuario.examenesRealizados;
+					document.getElementById('statPromedio').textContent = usuario.promedioGeneral;
+					document.getElementById('statPendientes').textContent = usuario.examenesPendientes;
+					document.getElementById('statNotificaciones').textContent = usuario.notificaciones;
+
+					// Mostrar modal
+					document.getElementById('profileModal').style.display = 'flex';
+				}
+
+				function cerrarPerfil() {
+					document.getElementById('profileModal').style.display = 'none';
+				}
+
+				// Cerrar modal al hacer click fuera del contenido
+				document.getElementById('profileModal').addEventListener('click', function(e) {
+					if (e.target === this) {
+						cerrarPerfil();
+					}
+				});
+
+				function cerrarSesion() {
+					window.location.href = 'index.html';
+					}
+
+				// Cargar datos al iniciar la página
+				document.addEventListener('DOMContentLoaded', function() {
+					// Actualizar datos del usuario en el menú
+					document.getElementById('userName').textContent = usuario.nombre;
+					document.getElementById('userRole').textContent = usuario.rol;
+					
+					// Cargar notificaciones
+					cargarNotificaciones();
+				});
+			</script>
+
+	</body>
+</html>
