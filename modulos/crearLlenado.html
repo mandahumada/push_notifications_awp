@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<title>Nuevo Llenado</title>
+	<link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+	<section>
+		<h2>Nuevo Llenado</h2>
+		<form id="formLlenado">
+			<label>Clave:</label>
+			<input type="text" id="claveLlenado" required><br>
+			<label>ID Respuesta:</label>
+			<input type="number" id="idRespuesta" required><br>
+			<button type="submit">Guardar</button>
+		</form>
+		<p id="estado"></p>
+	</section>
+
+	<script src="../assets/js/jquery.min.js"></script>
+	<script>
+		const API_URL = "../api/llenados_create.php";
+		const PENDING_KEY = "llenadosPendientes";
+
+		async function limpiarCacheLlenados() {
+			if ('caches' in window) {
+				const cache = await caches.open('practica1awp-data-v1');
+				const cacheKeys = await cache.keys();
+				for (const request of cacheKeys) {
+					if (request.url.includes('llenados.php')) {
+						await cache.delete(request);
+					}
+				}
+			}
+		}
+
+		function guardarOffline(llenado) {
+			let pendientes = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+			pendientes.push(llenado);
+			localStorage.setItem(PENDING_KEY, JSON.stringify(pendientes));
+		}
+
+		async function sincronizarPendientes() {
+			const pendientes = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+			if (pendientes.length === 0) return false;
+
+			let sincronizados = [];
+			for (const llenado of pendientes) {
+				try {
+					const res = await fetch(API_URL, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(llenado)
+					});
+					const data = await res.json();
+					if (data.success) sincronizados.push(llenado);
+				} catch { return false; }
+			}
+
+			if (sincronizados.length > 0) {
+				let nuevoPendientes = pendientes.filter(p => !sincronizados.includes(p));
+				localStorage.setItem(PENDING_KEY, JSON.stringify(nuevoPendientes));
+				await limpiarCacheLlenados();
+				return true;
+			}
+			return false;
+		}
+
+		document.getElementById("formLlenado").addEventListener("submit", async e => {
+			e.preventDefault();
+			const clave = document.getElementById("claveLlenado").value.trim();
+			const idRespuesta = parseInt(document.getElementById("idRespuesta").value);
+			const llenado = { Clave: clave, idRespuesta };
+			const estado = document.getElementById("estado");
+
+			if (!navigator.onLine) {
+				guardarOffline(llenado);
+				estado.textContent = "Sin conexión. Guardado offline.";
+				estado.style.color = "orange";
+
+                if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.sync.register(SYNC_LLENADOS_TAG);
+        console.log("Background Sync registrado para llenados");
+    } catch(err) {
+        console.warn("Background Sync no disponible para llenados:", err);
+    }
+}
+
+
+				setTimeout(() => window.location.href = "llenados.html", 2000);
+				return;
+			}
+
+			try {
+				const res = await fetch(API_URL, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(llenado)
+				});
+				const data = await res.json();
+				if (data.success) {
+					estado.textContent = "Llenado insertado correctamente.";
+					estado.style.color = "green";
+					await sincronizarPendientes();
+					await limpiarCacheLlenados();
+					setTimeout(() => window.location.href = "llenados.html", 1000);
+				} else throw new Error(data.error || "Error al insertar");
+			} catch (err) {
+				estado.textContent = "⚠️ Error: " + err.message + ". Guardado offline.";
+				estado.style.color = "red";
+				guardarOffline(llenado);
+				setTimeout(() => window.location.href = "llenados.html", 2000);
+			}
+		});
+
+		window.addEventListener("online", async () => {
+			await sincronizarPendientes();
+		});
+	</script>
+</body>
+</html>

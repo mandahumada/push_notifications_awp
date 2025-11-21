@@ -1,0 +1,397 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Examenes</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="../assets/css/main.css" />
+		<meta name="theme-color" content="#0d6efd">
+		<link rel="manifest" href="../manifest.json">
+		<link rel="icon" href="../favicon.ico" sizes="128x128">
+		<link rel="shortcut icon" href="../favicon.ico">
+		<link rel="apple-touch-icon" href="../favicon.ico">
+	</head>
+	
+	<body class="is-preload">
+		<div id="wrapper">
+			<div id="main">
+				<div class="inner">
+					<header id="header" style="margin-bottom: -40px;">
+						<a href="examenes.html" class="logo"><strong>Modulo 1</strong> Examenes</a>
+					</header>
+
+					<section>
+						<section id="search" class="alt">
+							<form method="post" action="#">
+								<input type="text" name="query" id="query" placeholder="Buscar examen" />
+							</form>
+						</section>
+
+						<div class="col-6 col-12-medium">
+							<ul class="actions" style="justify-content: end;">
+								<li><a href="crearExamen.html" class="button primary icon solid fa-plus">Nuevo examen</a></li>
+							</ul>
+						</div>
+
+						<div class="content">
+							<div class="container" id="examenes-container">
+								<p id="loading">Cargando examenes...</p>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+
+			<div id="sidebar">
+				<div class="inner">
+					<nav id="menu">
+						<header class="major">
+							<h2>Menu</h2>
+						</header>
+						<ul>
+							<li><a href="../inicio.html">Inicio</a></li>
+							<li><a href="examenes.html">Examenes</a></li>
+							<li><a href="preguntas.html">Preguntas</a></li>
+							<li><a href="respuestas.html">Respuestas</a></li>
+							<li><a href="llenados.html">Llenados</a></li>
+							<li><a href="notificaciones.html">Notificaciones</a></li>
+						</ul>
+					</nav>
+				</div>
+			</div>
+		</div>
+
+		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
+		<script src="../assets/js/main.js"></script>
+		
+		<script src="../pwa-constants.js" charset="utf-8"></script>
+		<script src="../pwa-installer.js" charset="utf-8"></script>
+		<script src="../pwa-sw.js" charset="utf-8"></script>
+		<script src="../pwa-network.js" charset="utf-8"></script>
+
+		<script>
+
+			
+			const API_URL = "../api/examenes_create.php";	
+			const API_EDITAR_URL = "../api/examenes_update.php";
+			const PENDING_KEY = "examenesPendientes";
+			const UPDATE_KEY = "examenes_edit_pendientes";
+
+			async function limpiarCacheExamenes() {
+				if ('caches' in window) {
+					const cache = await caches.open('practica1awp-data-v1');
+					const cacheKeys = await cache.keys();
+					
+					for (const request of cacheKeys) {
+						if (request.url.includes('examenes.php')) {
+							await cache.delete(request);
+							console.log('cache de examenes.php eliminado');
+						}
+					}
+				}
+			}
+
+			async function sincronizarPendientes() {
+				const pendientes = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+				
+				if (pendientes.length === 0) {
+					console.log("no hay examenes pendientes");
+					return false;
+				}
+
+				console.log(`sincronizando ${pendientes.length} examenes pendientes...`);
+				
+				let sincronizados = [];
+				
+				for (const examen of pendientes) {
+					try {
+						const res = await fetch(API_URL, {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify(examen)
+						});
+						
+						const data = await res.json();
+						
+						if (data.success) {
+							console.log("examen sincronizado:", examen.tituloExamen);
+							sincronizados.push(examen);
+						} else {
+							console.error("error al sincronizar:", data.error);
+						}
+					} catch (err) {
+						console.warn("no se pudo sincronizar aún:", err);
+						return false;
+					}
+				}
+
+				if (sincronizados.length > 0) {
+					let nuevoPendientes = pendientes.filter(p => !sincronizados.includes(p));
+					localStorage.setItem(PENDING_KEY, JSON.stringify(nuevoPendientes));
+					await limpiarCacheExamenes();
+					console.log(`🧹 ${sincronizados.length} examenes sincronizados correctamente`);
+					return true;
+				}
+				
+				return false;
+			}
+
+			async function sincronizarEdiciones() {
+				const pendientes = JSON.parse(localStorage.getItem(UPDATE_KEY) || "[]");
+				
+				if (pendientes.length === 0) {
+					console.log("no hay ediciones pendientes");
+					return false;
+				}
+
+				console.log(`sincronizando ${pendientes.length} ediciones pendientes...`);
+				
+				let sincronizados = [];
+				
+				for (const examen of pendientes) {
+					try {
+						const res = await fetch(API_EDITAR_URL, {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify(examen)
+						});
+						
+						const data = await res.json();
+						
+						if (data.success) {
+							console.log("edicion sincronizada:", examen.idExamen);
+							sincronizados.push(examen);
+						} else {
+							console.error("error al sincronizar edición:", data.error);
+						}
+					} catch (err) {
+						console.warn("no se pudo sincronizar edicion aun:", err);
+						return false;
+					}
+				}
+
+				if (sincronizados.length > 0) {
+					let nuevosPendientes = pendientes.filter(p => !sincronizados.some(s => s.idExamen === p.idExamen));
+					localStorage.setItem(UPDATE_KEY, JSON.stringify(nuevosPendientes));
+					await limpiarCacheExamenes();
+					console.log(`ediciones ${sincronizados.length} sincronizadas correctamente`);
+					return true;
+				}
+				
+				return false;
+			}
+
+			window.addEventListener("online", async () => {
+				console.log("conexion restaurada, sincronizando...");
+				
+				const loading = document.getElementById('loading');
+				loading.style.display = 'block';
+				loading.innerHTML = '<p style="color: blue;">sincronizando datos pendientes...</p>';
+				
+				const sincronizadoCrear = await sincronizarPendientes();
+				const sincronizadoEditar = await sincronizarEdiciones();
+				
+				if (sincronizadoCrear || sincronizadoEditar) {
+					loading.innerHTML = '<p style="color: green;">datos sincronizados. Recargando lista...</p>';
+					
+					setTimeout(() => {
+						cargarExamenes();
+					}, 1000);
+				} else {
+					cargarExamenes();
+				}
+			});
+
+			function renderizarExamenes(examenes) {
+				const container = document.getElementById('examenes-container');
+				const loading = document.getElementById('loading');
+				loading.style.display = 'none';
+
+				container.innerHTML = '';
+
+				if (!examenes || examenes.length === 0) {
+					container.innerHTML = '<p>estas offline - mostrando datos en cache</p><p style="font-size: 12px; color: gray;">No hay examenes en caché o la conexión está cerrada.</p>';
+					return;
+				}
+
+				localStorage.setItem('examenes_cache', JSON.stringify(examenes));
+
+				examenes.forEach(examen => {
+					const card = document.createElement('div');
+					card.className = 'card';
+					card.dataset.id = examen.idExamen || Date.now();
+					card.innerHTML = `
+						<div class="card-preview">[Preview]</div>
+						<div class="card-content">
+							<p class="card-title">${examen.tituloExamen || 'Sin título'}</p>
+							<p class="card-desc">${examen.descripcion || 'Sin descripción'}</p>
+						</div>
+						<div class="card-buttons">
+							<button class="btn-eliminar button small">Eliminar</button>
+							<button class="btn-editar button small">Editar</button>
+						</div>
+					`;
+
+					card.addEventListener('click', (e) => {
+						if (e.target.classList.contains('btn-eliminar') || e.target.classList.contains('btn-editar')) return;
+						
+						localStorage.setItem('ultimoExamen', examen.idExamen);
+						window.location.href = `preguntas.html?idExamen=${examen.idExamen}`;
+					});
+
+
+					const btnEliminar = card.querySelector('.btn-eliminar');
+					btnEliminar.addEventListener('click', (e) => eliminarExamen(e, examen.idExamen, card));
+
+					const btnEditar = card.querySelector('.btn-editar');
+					btnEditar.addEventListener('click', () => {
+						localStorage.setItem(`examen_${examen.idExamen}`, JSON.stringify(examen));
+						window.location.href = `editarExamen.html?id=${examen.idExamen}`;
+					});
+
+					container.appendChild(card);
+				});
+			}
+
+			function cargarExamenes() {
+				const container = document.getElementById('examenes-container');
+				const loading = document.getElementById('loading');
+				loading.style.display = 'block';
+				loading.innerHTML = '<p>Cargando exámenes...</p>';
+
+				const controller = new AbortController();
+				const timeout = setTimeout(() => controller.abort(), 5000);
+
+				fetch('../api/examenes.php', {
+					signal: controller.signal,
+					cache: 'no-cache'
+				})
+				.then(response => {
+					clearTimeout(timeout);
+					console.log('Status:', response.status);
+
+					if (response.status === 530) {
+						throw new Error('Servidor no disponible (530). Backend offline.');
+					}
+					if (!response.ok) {
+						throw new Error(`Error HTTP ${response.status}`);
+					}
+
+					return response.json();
+				})
+				.then(data => {
+					console.log('Datos recibidos:', data);
+
+					if (data.success && data.data) {
+						renderizarExamenes(data.data);
+
+						localStorage.setItem('examenesCache', JSON.stringify(data.data));
+						localStorage.setItem('examenesCacheFecha', new Date().toISOString());
+						console.log('examenes guardados en caché local.');
+					} else {
+						container.innerHTML = '<p>No hay examenes disponibles</p>';
+					}
+
+					loading.style.display = 'none';
+				})
+				.catch(error => {
+					clearTimeout(timeout);
+					console.warn('no se pudo conectar al servidor, usando caché local.');
+					console.error('Error completo:', error);
+
+					const cache = localStorage.getItem('examenesCache');
+					if (cache) {
+						const examenesGuardados = JSON.parse(cache);
+						renderizarExamenes(examenesGuardados);
+
+						const fecha = new Date(localStorage.getItem('examenesCacheFecha'));
+						loading.innerHTML = `
+							<p style="color: orange;">Sin conexion: mostrando datos guardados.</p>
+							<p style="font-size: 12px;">Última actualización: ${fecha.toLocaleString()}</p>`;
+					} else {
+						loading.innerHTML = `
+							<p style="color: red;">No hay conexion ni datos guardados.</p>
+							<p style="font-size: 12px;">Verifica que el servidor esté activo.</p>`;
+						container.innerHTML = '';
+					}
+				});
+			}
+
+			document.addEventListener('DOMContentLoaded', async () => {
+				if (navigator.onLine) {
+					const pendientesCrear = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+					const pendientesEditar = JSON.parse(localStorage.getItem(UPDATE_KEY) || "[]");
+					
+					if (pendientesCrear.length > 0 || pendientesEditar.length > 0) {
+						console.log("hay datos pendientes, sincronizando antes de cargar...");
+						await sincronizarPendientes();
+						await sincronizarEdiciones();
+					}
+				}
+				
+				cargarExamenes();
+			});
+
+			function redirigirExamen() {
+				window.location.href = "examen.html";
+			}
+
+			async function eliminarExamen(event, idExamen, cardElement) {
+				event.stopPropagation();
+				if (!confirm("seguro que deseas eliminar este examen?")) return;
+
+				const examenEliminado = { idExamen };
+
+				if (navigator.onLine) {
+					try {
+						const res = await fetch('../api/examenes_delete.php', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(examenEliminado)
+						});
+						const text = await res.text();
+						let data;
+						try { data = JSON.parse(text); } catch(e) { alert("Respuesta inválida del servidor"); return; }
+
+						if (data.success) {
+							alert('examen eliminado correctamente.');
+							cardElement.remove();
+							await limpiarCacheExamenes();
+						} else {
+							alert('Error al eliminar: ' + (data.error || 'Desconocido'));
+						}
+					} catch(err) {
+						console.error('Error al eliminar:', err);
+					}
+				} else {
+					let pendientes = JSON.parse(localStorage.getItem('examenesAEliminar') || '[]');
+					pendientes.push(examenEliminado);
+					localStorage.setItem('examenesAEliminar', JSON.stringify(pendientes));
+
+					alert('no hay conexion. El examen se eliminara al estar en línea.');
+					cardElement.remove();
+
+					if ('serviceWorker' in navigator && 'SyncManager' in window) {
+						navigator.serviceWorker.ready.then(reg => {
+							navigator.serviceWorker.controller.postMessage({
+								action: 'syncEliminarExamenes',
+								pendientes: JSON.parse(localStorage.getItem('examenesAEliminar') || '[]')
+							});
+							reg.sync.register('sync-examenes-delete').catch(err => console.error(err));
+						});
+					}
+				}
+			}
+
+			navigator.serviceWorker.addEventListener('message', event => {
+				if(event.data.action === 'limpiarEliminacionesPendientes') {
+					localStorage.removeItem('examenesAEliminar');
+					console.log("pendientes eliminados tras sincronizacion");
+				}
+			});
+		</script>
+	</body>
+</html>

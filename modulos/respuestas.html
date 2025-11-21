@@ -1,0 +1,1339 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Respuestas</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <link rel="stylesheet" href="../assets/css/main.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8fafc; }
+        .exam-select-container {
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-top: 40px;
+        }
+        .exam-select-container h2 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+        .exam-select-container select, 
+        .exam-select-container button {
+            /* padding: 10px; */
+            border-radius: 8px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            width: 80%;
+            margin-bottom: 15px;
+        }
+        .exam-select-container button {
+            /* background-color: #007bff; */
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .exam-select-container button:hover { background-color: #0056b3; }
+
+        .exam-header {
+            background: linear-gradient(135deg, #007bff, #004aad);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,123,255,0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .question-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 5px solid #007bff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .correct-answer { background: #d4edda; border-left: 4px solid #28a745; padding: 10px; border-radius: 6px; margin: 8px 0; }
+        .incorrect-answer { background: #f8f9fa; border-left: 4px solid #6c757d; padding: 10px; border-radius: 6px; margin: 8px 0; }
+        .answer-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.8em; font-weight: bold; }
+        .badge-correct { background: #28a745; color: white; }
+        .badge-incorrect { background: #6c757d; color: white; }
+        .difficulty-badge { padding: 5px 10px; border-radius: 10px; font-size: 0.8em; font-weight: bold; }
+        .difficulty-easy { background: #d4edda; color: #155724; }
+        .difficulty-medium { background: #fff3cd; color: #856404; }
+        .difficulty-hard { background: #f8d7da; color: #721c24; }
+
+        .btn-add-response {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-add-response:hover { background-color: #218838; }
+
+        .btn-edit, .btn-delete {
+            background-color: #ffc107;
+            color: #212529;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+        .btn-edit:hover { background-color: #e0a800; }
+        .btn-delete { background-color: #dc3545; color: white; }
+        .btn-delete:hover { background-color: #c82333; }
+
+        .loading, .error-message { text-align: center; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .error-message { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+        .no-print { display: block; }
+
+        /* Modal para agregar/editar respuestas */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .modal h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-group input {
+            width: auto;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #545b62; }
+
+        /* Barra de búsqueda */
+        .search-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        .search-box button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* Nuevos estilos */
+        .btn-add-to-question {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .btn-add-to-question:hover {
+            background: #138496;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .question-header h3 {
+            margin: 0;
+            flex: 1;
+        }
+
+        .answer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .answer-text {
+            flex: 1;
+        }
+
+        .answer-actions {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Estilos para modo offline */
+        .offline-mode {
+            opacity: 0.8;
+        }
+
+        .offline-warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .offline-warning i {
+            font-size: 1.2em;
+        }
+
+        .sync-pending {
+            position: relative;
+        }
+
+        .sync-pending::after {
+            content: "🔄";
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 0.8em;
+        }
+
+        .offline-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ffc107;
+            color: #856404;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 400px;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            .offline-notification,
+            .offline-warning {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="is-preload">
+<div id="wrapper">
+    <div id="main">
+        <div class="inner">
+            <header id="header">
+                <a href="respuestas.html" class="logo"><strong>Modulo 3</strong> Respuestas</a>
+            </header>
+
+            <section id="contenido-respuestas">
+                <div id="loading-section" class="loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2em; color:#007bff;"></i>
+                    <p>Cargando información...</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div class="inner">
+            <nav id="menu">
+                <header class="major"><h2>Menú</h2></header>
+                <ul>
+                    <li><a href="../inicio.html">Inicio</a></li>
+                    <li><a href="examenes.html">Exámenes</a></li>
+                    <li><a href="preguntas.html">Preguntas</a></li>
+                    <li><a href="respuestas.html">Respuestas</a></li>
+                    <li><a href="llenados.html">Llenados</a></li>
+                    <li><a href="notificaciones.html">Notificaciones</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar/editar respuestas -->
+<div id="response-modal" class="modal">
+    <div class="modal-content">
+        <h3 id="modal-title">Agregar Respuesta</h3>
+        <form id="response-form">
+            <div class="form-group">
+                <label for="modal-pregunta-id">ID Pregunta:</label>
+                <input type="text" id="modal-pregunta-id" required>
+            </div>
+            <div class="form-group">
+                <label for="modal-respuesta-texto">Respuesta:</label>
+                <textarea id="modal-respuesta-texto" placeholder="Ingresa el texto de la respuesta..." required></textarea>
+            </div>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="modal-correcta">
+                    <label for="modal-correcta">¿Es la respuesta correcta?</label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-secondary" id="modal-cancel">Cancelar</button>
+                <button type="submit" class="btn-primary" id="modal-save">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../assets/js/jquery.min.js"></script>
+<script src="../assets/js/main.js"></script>
+
+<script src="../pwa-constants.js" charset="utf-8"></script>
+<script src="../pwa-installer.js" charset="utf-8"></script>
+<script src="../pwa-sw.js" charset="utf-8"></script>
+<script src="../pwa-network.js" charset="utf-8"></script>
+
+<script>
+$(document).ready(function () {
+    const params = new URLSearchParams(window.location.search);
+    const examId = params.get("idExamen");
+    
+    console.log("Parámetros URL:", window.location.search);
+    console.log("ID Examen obtenido:", examId);
+
+    // Claves para localStorage
+    const PENDING_CREATE_KEY = "respuestasPendientes";
+    const PENDING_UPDATE_KEY = "respuestasPendientesActualizar";
+    const PENDING_DELETE_KEY = "respuestasPendientesEliminar";
+
+    let currentExamData = null;
+    let editingResponseId = null;
+
+    if (examId) {
+        console.log("Cargando respuestas para examen:", examId);
+        loadExamAnswers(examId);
+    } else {
+        console.log("Mostrando selector de exámenes");
+        showExamSelector();
+    }
+
+    // ========== FUNCIONES OFFLINE MEJORADAS ==========
+
+    // Función para verificar estado de sincronización
+    function verificarEstadoSincronizacion() {
+        const pendientesCrear = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+        const pendientesActualizar = JSON.parse(localStorage.getItem(PENDING_UPDATE_KEY) || "[]");
+        const pendientesEliminar = JSON.parse(localStorage.getItem(PENDING_DELETE_KEY) || "[]");
+        
+        const totalPendientes = pendientesCrear.length + pendientesActualizar.length + pendientesEliminar.length;
+        
+        if (totalPendientes > 0) {
+            mostrarNotificacionOffline(totalPendientes);
+        }
+        
+        return totalPendientes;
+    }
+
+    // Función para mostrar notificación de estado offline
+    function mostrarNotificacionOffline(totalPendientes) {
+        // Eliminar notificación existente
+        const existingNotification = document.querySelector('.offline-notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+        
+        const notification = document.createElement('div');
+        notification.className = 'offline-notification';
+        notification.innerHTML = `
+            <i class="fas fa-sync-alt fa-spin"></i>
+            <div>
+                <strong>Modo Offline</strong>
+                <div>Tienes ${totalPendientes} operación(es) pendientes de sincronizar</div>
+            </div>
+            <button id="sync-manual-btn" style="
+                background: #856404;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-left: 10px;
+            ">Sincronizar</button>
+            <button id="close-notification-btn" style="
+                background: transparent;
+                border: none;
+                color: #856404;
+                cursor: pointer;
+                margin-left: 5px;
+                font-size: 1.2em;
+            ">×</button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Event listeners para los botones
+        document.getElementById('sync-manual-btn').addEventListener('click', sincronizarManual);
+        document.getElementById('close-notification-btn').addEventListener('click', function() {
+            notification.remove();
+        });
+    }
+
+    // Función para sincronización manual
+    window.sincronizarManual = async function() {
+        if (!navigator.onLine) {
+            alert('❌ No hay conexión a internet. No se puede sincronizar.');
+            return;
+        }
+        
+        const totalPendientes = verificarEstadoSincronizacion();
+        
+        if (totalPendientes === 0) {
+            alert('✅ No hay operaciones pendientes para sincronizar.');
+            return;
+        }
+        
+        // Mostrar loading
+        const loading = document.createElement('div');
+        loading.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10001;
+            ">
+                <div style="
+                    background: white;
+                    padding: 30px;
+                    border-radius: 12px;
+                    text-align: center;
+                    min-width: 300px;
+                ">
+                    <i class="fas fa-sync-alt fa-spin" style="font-size: 2em; color: #007bff;"></i>
+                    <p><strong>Sincronizando...</strong></p>
+                    <p>${totalPendientes} operaciones pendientes</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(loading);
+        
+        try {
+            // Ejecutar sincronización directamente
+            const resultados = await Promise.all([
+                syncRespuestasCreate(),
+                syncRespuestasUpdate(),
+                syncRespuestasDelete()
+            ]);
+            
+            const totalSincronizadas = resultados.reduce((sum, count) => sum + count, 0);
+            
+            setTimeout(() => {
+                loading.remove();
+                
+                // Eliminar notificación offline
+                const notification = document.querySelector('.offline-notification');
+                if (notification) notification.remove();
+                
+                if (totalSincronizadas > 0) {
+                    alert(`✅ Sincronización completada. ${totalSincronizadas} operaciones procesadas.`);
+                    if (examId) {
+                        loadExamAnswers(examId);
+                    }
+                } else {
+                    alert('ℹ️ No se pudieron sincronizar las operaciones. Intenta nuevamente.');
+                }
+            }, 2000);
+            
+        } catch (error) {
+            loading.remove();
+            alert('❌ Error durante la sincronización: ' + error.message);
+        }
+    };
+
+    // Funciones de sincronización mejoradas
+    async function syncRespuestasCreate() {
+        if (!navigator.onLine) return 0;
+        
+        const pendientes = JSON.parse(localStorage.getItem(PENDING_CREATE_KEY) || "[]");
+        if (pendientes.length === 0) return 0;
+        
+        const exitosas = [];
+        
+        for (const respuesta of pendientes) {
+            try {
+                const response = await fetch('../api/respuestas_create.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(respuesta)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    exitosas.push(respuesta);
+                    console.log('✅ Respuesta creada en servidor:', respuesta);
+                } else {
+                    console.warn('⚠️ Error al crear respuesta:', data.error);
+                }
+            } catch (error) {
+                console.error('❌ Error de red al crear respuesta:', error);
+                break;
+            }
+        }
+        
+        // Remover exitosas
+        if (exitosas.length > 0) {
+            const nuevasPendientes = pendientes.filter(p => 
+                !exitosas.some(e => JSON.stringify(e) === JSON.stringify(p))
+            );
+            localStorage.setItem(PENDING_CREATE_KEY, JSON.stringify(nuevasPendientes));
+        }
+        
+        return exitosas.length;
+    }
+
+    async function syncRespuestasUpdate() {
+        if (!navigator.onLine) return 0;
+        
+        const pendientes = JSON.parse(localStorage.getItem(PENDING_UPDATE_KEY) || "[]");
+        if (pendientes.length === 0) return 0;
+        
+        const exitosas = [];
+        
+        for (const respuesta of pendientes) {
+            try {
+                const response = await fetch('../api/respuestas_update.php', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(respuesta)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    exitosas.push(respuesta);
+                    console.log('✅ Respuesta actualizada en servidor:', respuesta.idRespuesta);
+                } else {
+                    console.warn('⚠️ Error al actualizar respuesta:', data.error);
+                }
+            } catch (error) {
+                console.error('❌ Error de red al actualizar respuesta:', error);
+                break;
+            }
+        }
+        
+        // Remover exitosas
+        if (exitosas.length > 0) {
+            const nuevasPendientes = pendientes.filter(p => 
+                !exitosas.some(e => e.idRespuesta === p.idRespuesta)
+            );
+            localStorage.setItem(PENDING_UPDATE_KEY, JSON.stringify(nuevasPendientes));
+        }
+        
+        return exitosas.length;
+    }
+
+    async function syncRespuestasDelete() {
+        if (!navigator.onLine) return 0;
+        
+        const pendientes = JSON.parse(localStorage.getItem(PENDING_DELETE_KEY) || "[]");
+        if (pendientes.length === 0) return 0;
+        
+        const exitosas = [];
+        
+        for (const respuesta of pendientes) {
+            try {
+                const response = await fetch('../api/respuestas_delete.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idRespuesta: respuesta.idRespuesta })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    exitosas.push(respuesta);
+                    console.log('✅ Respuesta eliminada en servidor:', respuesta.idRespuesta);
+                } else {
+                    console.warn('⚠️ Error al eliminar respuesta:', data.error);
+                }
+            } catch (error) {
+                console.error('❌ Error de red al eliminar respuesta:', error);
+                break;
+            }
+        }
+        
+        // Remover exitosas
+        if (exitosas.length > 0) {
+            const nuevasPendientes = pendientes.filter(p => 
+                !exitosas.some(e => e.idRespuesta === p.idRespuesta)
+            );
+            localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(nuevasPendientes));
+        }
+        
+        return exitosas.length;
+    }
+
+    // ========== MEJORAS EN LA CARGA OFFLINE ==========
+
+    // Función mejorada para cargar respuestas
+    function loadExamAnswers(id) {
+        console.log("🔄 Iniciando carga de respuestas para ID:", id);
+        $("#loading-section").show();
+        
+        fetch(`../api/respuestas.php?idExamen=${id}`)
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`Error HTTP: ${res.status} ${res.statusText}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                $("#loading-section").hide();
+                if (data.success && data.data) {
+                    currentExamData = data.data;
+                    renderExamAnswers(data.data);
+                    // Cachear datos exitosos
+                    cacheExamData(id, data.data);
+                    // Verificar sincronización después de cargar
+                    setTimeout(verificarEstadoSincronizacion, 1000);
+                } else {
+                    showError("No se encontraron respuestas para este examen: " + (data.error || 'Error desconocido'));
+                }
+            })
+            .catch(err => {
+                console.error("❌ Error en fetch:", err);
+                $("#loading-section").hide();
+                
+                // Intentar cargar desde caché
+                showOfflineData(id);
+            });
+    }
+
+    // Función para mostrar datos offline
+    function showOfflineData(examId) {
+        // Intentar obtener datos del sessionStorage como fallback
+        const cachedData = sessionStorage.getItem(`cached_exam_${examId}`);
+        
+        if (cachedData) {
+            const data = JSON.parse(cachedData);
+            currentExamData = data;
+            renderExamAnswers(data);
+            
+            // Mostrar advertencia de datos cacheados
+            const warning = `
+                <div class="offline-warning">
+                    <i class="fas fa-wifi-slash"></i> 
+                    <div>
+                        <strong>Modo Offline</strong> - Mostrando datos de la última sesión en línea
+                    </div>
+                </div>
+            `;
+            $("#contenido-respuestas").prepend(warning);
+            
+        } else {
+            showError("No se pueden cargar los datos. Verifica tu conexión a internet.");
+        }
+    }
+
+    // Cachear datos cuando se carguen exitosamente
+    function cacheExamData(examId, data) {
+        try {
+            sessionStorage.setItem(`cached_exam_${examId}`, JSON.stringify(data));
+            console.log('✅ Datos cacheados para examen:', examId);
+        } catch (error) {
+            console.warn('⚠️ No se pudo cachear datos:', error);
+        }
+    }
+
+    function showExamSelector() {
+        $("#contenido-respuestas").html(`
+            <div class="exam-select-container">
+                <i class="fas fa-book-open" style="font-size: 3em; color: #007bff; margin-bottom: 10px;"></i>
+                <h2>Selecciona un examen</h2>
+                <p>Elige un examen para ver sus preguntas y respuestas correctas.</p>
+                <select id="exam-select">
+                    <option value="">Cargando exámenes...</option>
+                </select>
+                <button id="load-exam"><i class="fas fa-arrow-right"></i> Ver Respuestas</button>
+                <div style="margin-top: 20px;">
+                    <button onclick="sincronizarManual()" class="btn-primary" style="padding: 8px 16px;">
+                        <i class="fas fa-sync"></i> Sincronizar Pendientes
+                    </button>
+                </div>
+            </div>
+        `);
+
+        // Cargar exámenes
+        fetch("../api/examenes.php")
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data && data.data.length > 0) {
+                    const select = $("#exam-select");
+                    select.empty().append(`<option value="">Selecciona un examen</option>`);
+                    data.data.forEach(exam => {
+                        select.append(`<option value="${exam.idExamen}">${exam.tituloExamen}</option>`);
+                    });
+                } else {
+                    $("#exam-select").html("<option>No hay exámenes disponibles</option>");
+                }
+            })
+            .catch(err => {
+                console.error("❌ Error al cargar exámenes:", err);
+                $("#exam-select").html("<option>Error al cargar exámenes</option>");
+            });
+
+        $(document).on("click", "#load-exam", function () {
+            const selectedId = $("#exam-select").val();
+            console.log("ID seleccionado:", selectedId);
+            
+            if (selectedId) {
+                window.location.href = `respuestas.html?idExamen=${selectedId}`;
+            } else {
+                alert("Por favor selecciona un examen.");
+            }
+        });
+    }
+
+    function renderExamAnswers(examData, searchTerm = '') {
+        // Cachear datos
+        if (examId) {
+            cacheExamData(examId, examData);
+        }
+        
+        let html = `
+            <div style="margin-bottom: 20px;">
+                <button onclick="window.location.href='respuestas.html'" class="btn-secondary" style="margin-bottom: 10px;">
+                    <i class="fas fa-arrow-left"></i> Volver al selector
+                </button>
+                <button onclick="sincronizarManual()" class="btn-primary" style="margin-bottom: 10px; margin-left: 10px;">
+                    <i class="fas fa-sync"></i> Sincronizar Pendientes
+                </button>
+            </div>
+            <div class="exam-header">
+                <div>
+                    <h2><i class="fas fa-file-alt"></i> ${examData.examen.tituloExamen}</h2>
+                    <p>${examData.examen.descripcion || ""}</p>
+                    <small>ID Examen: ${examData.examen.idExamen}</small>
+                </div>
+                <button class="btn-add-response" id="add-response-btn"><i class="fas fa-plus"></i> Agregar Respuesta</button>
+            </div>
+            
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Buscar en preguntas y respuestas..." value="${searchTerm}">
+                    <button id="search-btn"><i class="fas fa-search"></i> Buscar</button>
+                    ${searchTerm ? '<button id="clear-search"><i class="fas fa-times"></i> Limpiar</button>' : ''}
+                </div>
+            </div>
+        `;
+
+        let filteredQuestions = examData.preguntas || [];
+        
+        // Aplicar filtro de búsqueda si existe
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            filteredQuestions = examData.preguntas.filter(pregunta => {
+                const preguntaText = pregunta.pregunta.toLowerCase();
+                const respuestasText = pregunta.respuestas ? 
+                    pregunta.respuestas.map(r => r.respuesta.toLowerCase()).join(' ') : '';
+                
+                return preguntaText.includes(term) || respuestasText.includes(term);
+            });
+        }
+
+        if (filteredQuestions.length > 0) {
+            filteredQuestions.forEach((pregunta, index) => {
+                const difficulty = getDifficultyLevel(pregunta.valor);
+                html += `
+                    <div class="question-container" data-idpregunta="${pregunta.idPregunta}">
+                        <div class="question-header">
+                            <h3><i class="fas fa-question-circle" style="color:#007bff;"></i> Pregunta ${index + 1}</h3>
+                            <button class="btn-add-to-question" data-idpregunta="${pregunta.idPregunta}">
+                                <i class="fas fa-plus"></i> Agregar Respuesta
+                            </button>
+                        </div>
+                        <p><strong>${highlightSearchTerm(pregunta.pregunta, searchTerm)}</strong></p>
+                        <p><span class="difficulty-badge difficulty-${difficulty}">${difficulty.toUpperCase()}</span></p>
+                        <p><small style="color: #6c757d;"><i class="fas fa-info-circle"></i> ID Pregunta: ${pregunta.idPregunta}</small></p>
+                `;
+                
+                if (pregunta.respuestas && pregunta.respuestas.length > 0) {
+                    const sorted = [...pregunta.respuestas].sort((a, b) => b.correcta - a.correcta);
+                    sorted.forEach((r, i) => {
+                        const correct = parseInt(r.correcta) === 1;
+                        const cls = correct ? "correct-answer" : "incorrect-answer";
+                        const badge = correct ? "badge-correct" : "badge-incorrect";
+                        const label = correct ? "CORRECTA" : "INCORRECTA";
+                        const icon = correct ? "fa-check-circle" : "fa-times-circle";
+                        const letter = String.fromCharCode(65 + i);
+                        
+                        // Marcar respuestas pendientes de sincronización
+                        const isPending = isResponsePending(r.idRespuesta);
+                        const pendingClass = isPending ? 'sync-pending' : '';
+                        
+                        html += `
+                            <div class="${cls} ${pendingClass}" data-idrespuesta="${r.idRespuesta}">
+                                <div class="answer-content">
+                                    <div class="answer-text">
+                                        <strong>${letter}. ${highlightSearchTerm(r.respuesta, searchTerm)}</strong>
+                                        <br>
+                                        <small style="color: #6c757d;">ID Respuesta: ${r.idRespuesta}</small>
+                                        ${isPending ? '<small style="color: #ffc107;"><i class="fas fa-clock"></i> Pendiente de sincronización</small>' : ''}
+                                    </div>
+                                    <div class="answer-actions">
+                                        <span class="answer-badge ${badge}"><i class="fas ${icon}"></i> ${label}</span>
+                                        <button class="btn-edit" data-response='${JSON.stringify(r).replace(/'/g, "&#39;")}'><i class="fas fa-edit"></i> Editar</button>
+                                        <button class="btn-delete" data-idrespuesta="${r.idRespuesta}"><i class="fas fa-trash"></i> Eliminar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += `<p style="color: #6c757d; font-style: italic;">No hay respuestas para esta pregunta.</p>`;
+                }
+                html += `</div>`;
+            });
+        } else {
+            html += `<div class="error-message">${searchTerm ? 'No se encontraron resultados para la búsqueda.' : 'No hay preguntas registradas.'}</div>`;
+        }
+
+        $("#contenido-respuestas").html(html);
+        
+        // Verificar estado de sincronización después de renderizar
+        verificarEstadoSincronizacion();
+    }
+
+    // Función para verificar si una respuesta está pendiente de sincronización
+    function isResponsePending(idRespuesta) {
+        const pendientesUpdate = JSON.parse(localStorage.getItem(PENDING_UPDATE_KEY) || "[]");
+        const pendientesDelete = JSON.parse(localStorage.getItem(PENDING_DELETE_KEY) || "[]");
+        
+        return pendientesUpdate.some(r => r.idRespuesta == idRespuesta) || 
+               pendientesDelete.some(r => r.idRespuesta == idRespuesta);
+    }
+
+    function highlightSearchTerm(text, term) {
+        if (!term || !text) return text;
+        const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return text.replace(regex, '<mark style="background-color: #ffeb3b;">$1</mark>');
+    }
+
+    // Función para validar máximo 2 respuestas correctas
+    async function validarMaximoRespuestasCorrectas(idPregunta, nuevaCorrecta, idRespuestaEditando = null) {
+        try {
+            // Si no es correcta, no hay problema
+            if (!nuevaCorrecta) return true;
+            
+            if (!currentExamData || !currentExamData.preguntas) return true;
+            
+            // Contar respuestas correctas existentes para esta pregunta
+            const pregunta = currentExamData.preguntas.find(p => p.idPregunta == idPregunta);
+            if (!pregunta || !pregunta.respuestas) return true;
+            
+            const respuestasCorrectas = pregunta.respuestas
+                .filter(r => parseInt(r.correcta) === 1 && r.idRespuesta != idRespuestaEditando)
+                .length || 0;
+            
+            console.log(`Respuestas correctas actuales: ${respuestasCorrectas}, Editando: ${idRespuestaEditando}`);
+            
+            if (respuestasCorrectas >= 2) {
+                alert("❌ Ya existen 2 respuestas correctas para esta pregunta. No puedes tener más de 2 respuestas correctas por pregunta.");
+                return false;
+            }
+            
+            return true;
+        } catch (error) {
+            console.error("Error en validación:", error);
+            return true; // En caso de error, permitir continuar
+        }
+    }
+
+    // Modal functions
+    function openModal(responseData = null, idPreguntaFromButton = null) {
+        editingResponseId = responseData ? responseData.idRespuesta : null;
+        
+        if (responseData) {
+            $("#modal-title").text("Editar Respuesta");
+            $("#modal-pregunta-id").val(responseData.idPregunta || '');
+            $("#modal-respuesta-texto").val(responseData.respuesta);
+            $("#modal-correcta").prop('checked', parseInt(responseData.correcta) === 1);
+            
+            // Deshabilitar el campo ID Pregunta cuando se está editando
+            $("#modal-pregunta-id").prop('disabled', true);
+        } else {
+            $("#modal-title").text("Agregar Respuesta");
+            $("#modal-pregunta-id").val(idPreguntaFromButton || '');
+            $("#modal-respuesta-texto").val('');
+            $("#modal-correcta").prop('checked', false);
+            
+            // Habilitar el campo ID Pregunta cuando se está creando
+            $("#modal-pregunta-id").prop('disabled', false);
+        }
+        
+        $("#response-modal").show();
+    }
+
+    function closeModal() {
+        $("#response-modal").hide();
+        editingResponseId = null;
+        $("#response-form")[0].reset();
+        // Habilitar el campo ID Pregunta al cerrar
+        $("#modal-pregunta-id").prop('disabled', false);
+    }
+
+    // Event Listeners
+    $(document).on("click", "#add-response-btn", function() {
+        // Al agregar nueva respuesta, no pre-llenar ID pregunta
+        openModal();
+    });
+
+    $(document).on("click", ".btn-edit", function() {
+        try {
+            const responseJson = $(this).data('response');
+            console.log("Datos crudos:", responseJson);
+            
+            // Si ya es un objeto, úsalo directamente
+            let responseData;
+            if (typeof responseJson === 'object') {
+                responseData = responseJson;
+            } else {
+                // Si es string, haz el replace y parse
+                responseData = JSON.parse(responseJson.replace(/&#39;/g, "'"));
+            }
+            
+            console.log("Datos procesados:", responseData);
+            openModal(responseData);
+        } catch (error) {
+            console.error("Error al procesar datos de respuesta:", error);
+            alert("Error al cargar los datos de la respuesta para editar.");
+        }
+    });
+
+    // Botón para agregar respuesta a una pregunta específica
+    $(document).on("click", ".btn-add-to-question", function() {
+        const idPregunta = $(this).data("idpregunta");
+        console.log("Agregando respuesta a pregunta ID:", idPregunta);
+        openModal(null, idPregunta);
+    });
+
+    $(document).on("click", ".btn-delete", async function() {
+        const idRespuesta = $(this).data("idrespuesta");
+        const respuestaElement = $(this).closest("[data-idrespuesta]");
+
+        if (!confirm("¿Seguro que deseas eliminar esta respuesta?")) return;
+
+        if (!navigator.onLine) {
+            // Modo offline - guardar en localStorage
+            let pendientes = JSON.parse(localStorage.getItem(PENDING_DELETE_KEY) || "[]");
+            pendientes.push({ idRespuesta });
+            localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(pendientes));
+
+            // Registrar sync con Service Worker
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    await reg.sync.register('sync-respuestas-delete');
+                    console.log('✅ Sync registrado para eliminación');
+                } catch (error) {
+                    console.error('❌ Error registrando sync:', error);
+                }
+            }
+
+            alert("✅ Respuesta eliminada offline. Se sincronizará al volver online.");
+            respuestaElement.remove();
+            verificarEstadoSincronizacion();
+            return;
+        }
+
+        // Modo online - eliminar directamente
+        $.ajax({
+            url: "../api/respuestas_delete.php",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ idRespuesta: idRespuesta }),
+            success: function(res) {
+                if (res.success) {
+                    alert("✅ Respuesta eliminada correctamente.");
+                    loadExamAnswers(examId);
+                } else {
+                    alert("❌ Error al eliminar respuesta: " + res.error);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("❌ Error en AJAX:", xhr.responseText);
+                alert("❌ Error al eliminar respuesta: " + error);
+            }
+        });
+    });
+
+    $(document).on("submit", "#response-form", async function(e) {
+        e.preventDefault();
+        
+        const respuestaData = {
+            idPregunta: $("#modal-pregunta-id").val(),
+            respuesta: $("#modal-respuesta-texto").val(),
+            correcta: $("#modal-correcta").is(':checked') ? 1 : 0
+        };
+
+        // Validación diferente para crear vs editar
+        if (editingResponseId) {
+            // Al editar, solo validar que la respuesta no esté vacía
+            if (!respuestaData.respuesta.trim()) {
+                alert("❌ La respuesta no puede estar vacía.");
+                return;
+            }
+            respuestaData.idRespuesta = editingResponseId;
+        } else {
+            // Al crear, validar ambos campos
+            if (!respuestaData.idPregunta || !respuestaData.respuesta.trim()) {
+                alert("❌ El ID de la pregunta y la respuesta son requeridos.");
+                return;
+            }
+        }
+
+        // VALIDAR MÁXIMO 2 RESPUESTAS CORRECTAS
+        const esValida = await validarMaximoRespuestasCorrectas(
+            respuestaData.idPregunta, 
+            respuestaData.correcta,
+            editingResponseId // null si es nueva respuesta
+        );
+        
+        if (!esValida) {
+            return; // Detener el envío si no pasa la validación
+        }
+
+        if (!navigator.onLine) {
+            // Modo offline - guardar en localStorage
+            const key = editingResponseId ? PENDING_UPDATE_KEY : PENDING_CREATE_KEY;
+            let pendientes = JSON.parse(localStorage.getItem(key) || "[]");
+            pendientes.push(respuestaData);
+            localStorage.setItem(key, JSON.stringify(pendientes));
+
+            // Registrar sync con Service Worker
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    const syncTag = editingResponseId ? 'sync-respuestas-update' : 'sync-respuestas-create';
+                    await reg.sync.register(syncTag);
+                    console.log('✅ Sync registrado:', syncTag);
+                } catch (error) {
+                    console.error('❌ Error registrando sync:', error);
+                }
+            }
+
+            alert(`✅ Respuesta ${editingResponseId ? 'actualizada' : 'guardada'} offline. Se sincronizará al volver online.`);
+            closeModal();
+            loadExamAnswers(examId);
+            return;
+        }
+
+        // Modo online - enviar directamente al servidor
+        const url = editingResponseId ? "../api/respuestas_update.php" : "../api/respuestas_create.php";
+        const method = editingResponseId ? "PUT" : "POST";
+
+        $.ajax({
+            url: url,
+            type: method,
+            data: JSON.stringify(respuestaData),
+            contentType: 'application/json',
+            success: function(res) {
+                if (res.success) {
+                    alert(`✅ Respuesta ${editingResponseId ? 'actualizada' : 'agregada'} correctamente.`);
+                    closeModal();
+                    loadExamAnswers(examId);
+                } else {
+                    alert("❌ Error: " + res.error);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("❌ Error en AJAX:", xhr.responseText);
+                alert("❌ Error al procesar la solicitud: " + error);
+            }
+        });
+    });
+
+    $(document).on("click", "#modal-cancel", closeModal);
+    $(document).on("click", "#response-modal", function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    $(document).on("click", "#search-btn", function() {
+        const searchTerm = $("#search-input").val();
+        if (currentExamData) {
+            renderExamAnswers(currentExamData, searchTerm);
+        }
+    });
+
+    $(document).on("click", "#clear-search", function() {
+        $("#search-input").val('');
+        if (currentExamData) {
+            renderExamAnswers(currentExamData);
+        }
+    });
+
+    $(document).on("keypress", "#search-input", function(e) {
+        if (e.which === 13) {
+            $("#search-btn").click();
+        }
+    });
+
+    function getDifficultyLevel(points) {
+        const v = parseFloat(points) || 0;
+        if (v <= 5) return "easy";
+        if (v <= 10) return "medium";
+        return "hard";
+    }
+
+    function showError(msg) {
+        console.error("Mostrando error:", msg);
+        $("#contenido-respuestas").html(`
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i> ${msg}
+                <br><br>
+                <button onclick="window.location.href='respuestas.html'" class="btn-primary">
+                    <i class="fas fa-arrow-left"></i> Volver al selector
+                </button>
+            </div>
+        `);
+    }
+function showExamSelector() {
+    $("#contenido-respuestas").html(`
+        <div class="exam-select-container">
+            <i class="fas fa-book-open" style="font-size: 3em; color: #007bff; margin-bottom: 10px;"></i>
+            <h2>Selecciona un examen</h2>
+            <p>Elige un examen para ver sus preguntas y respuestas correctas.</p>
+            <select id="exam-select">
+                <option value="">Cargando exámenes...</option>
+            </select>
+            <button id="load-exam"><i class="fas fa-arrow-right"></i> Ver Respuestas</button>
+            <div style="margin-top: 20px;">
+                <button onclick="sincronizarManual()" class="btn-primary" style="padding: 8px 16px;">
+                    <i class="fas fa-sync"></i> Sincronizar Pendientes
+                </button>
+            </div>
+        </div>
+    `);
+
+    // Cargar exámenes con mejor manejo de errores
+    fetch("../api/examenes.php")
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`Error HTTP: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log("Datos recibidos:", data);
+            if (data.success && data.data && data.data.length > 0) {
+                const select = $("#exam-select");
+                select.empty().append(`<option value="">Selecciona un examen</option>`);
+                data.data.forEach(exam => {
+                    select.append(`<option value="${exam.idExamen}">${exam.tituloExamen}</option>`);
+                });
+            } else {
+                $("#exam-select").html(`
+                    <option value="">No hay exámenes disponibles</option>
+                    <option value="demo">Examen Demo (Offline)</option>
+                `);
+                console.warn("No hay datos o success es false:", data);
+            }
+        })
+        .catch(err => {
+            console.error("❌ Error al cargar exámenes:", err);
+            $("#exam-select").html(`
+                <option value="">Error al cargar exámenes</option>
+                <option value="demo">Examen Demo (Modo Offline)</option>
+            `);
+            
+            // Mostrar datos de demo para testing
+            mostrarDatosDemo();
+        });
+
+    $(document).on("click", "#load-exam", function () {
+        const selectedId = $("#exam-select").val();
+        console.log("ID seleccionado:", selectedId);
+        
+        if (selectedId) {
+            if (selectedId === "demo") {
+                // Cargar examen demo
+                cargarExamenDemo();
+            } else {
+                window.location.href = `respuestas.html?idExamen=${selectedId}`;
+            }
+        } else {
+            alert("Por favor selecciona un examen.");
+        }
+    });
+}
+
+// Función para cargar examen demo (modo offline)
+function cargarExamenDemo() {
+    const examData = {
+        examen: {
+            idExamen: "demo",
+            tituloExamen: "Examen Demo - Modo Offline",
+            descripcion: "Este es un examen de demostración para modo offline"
+        },
+        preguntas: [
+            {
+                idPregunta: 1,
+                pregunta: "¿Cuál es la capital de Francia?",
+                valor: 10,
+                respuestas: [
+                    {
+                        idRespuesta: 1,
+                        respuesta: "París",
+                        correcta: 1
+                    },
+                    {
+                        idRespuesta: 2,
+                        respuesta: "Londres",
+                        correcta: 0
+                    },
+                    {
+                        idRespuesta: 3,
+                        respuesta: "Berlín",
+                        correcta: 0
+                    }
+                ]
+            },
+            {
+                idPregunta: 2,
+                pregunta: "¿Cuánto es 2 + 2?",
+                valor: 5,
+                respuestas: [
+                    {
+                        idRespuesta: 4,
+                        respuesta: "4",
+                        correcta: 1
+                    },
+                    {
+                        idRespuesta: 5,
+                        respuesta: "22",
+                        correcta: 0
+                    }
+                ]
+            }
+        ]
+    };
+
+    currentExamData = examData;
+    renderExamAnswers(examData);
+    
+    // Ocultar selector y mostrar contenido
+    $("#contenido-respuestas").html(`
+        <div style="margin-bottom: 20px;">
+            <button onclick="window.location.href='respuestas.html'" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al selector
+            </button>
+        </div>
+    `);
+    renderExamAnswers(examData);
+}
+
+function mostrarDatosDemo() {
+    console.log("📱 Mostrando datos de demostración para modo offline");
+}
+    // ========== INICIALIZACIÓN OFFLINE ==========
+
+    // Verificar estado al cargar la página
+    setTimeout(verificarEstadoSincronizacion, 2000);
+    
+    // Escuchar cambios de conexión
+    window.addEventListener('online', function() {
+        console.log('🌐 Conexión restablecida - verificando sincronización...');
+        setTimeout(verificarEstadoSincronizacion, 1000);
+    });
+    
+    window.addEventListener('offline', function() {
+        console.log('📴 Sin conexión - entrando en modo offline');
+        verificarEstadoSincronizacion();
+    });
+
+});
+</script>
+</body>
+</html>

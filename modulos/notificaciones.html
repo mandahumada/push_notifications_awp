@@ -1,0 +1,152 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Notificaciones - Sistema de Exámenes</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="../assets/css/main.css"/>
+		<style>
+			.notification-item {
+				padding: 20px;
+				border-bottom: 1px solid #eee;
+				margin-bottom: 10px;
+				border-radius: 8px;
+				transition: background-color 0.3s;
+			}
+			.notification-item:hover { background-color: #f8f9fa; }
+			.notification-item.unread { background-color: #e7f3ff; border-left: 4px solid #0d6efd; }
+			.notification-item.read { background-color: #f8f9fa; opacity: 0.8; }
+			.notification-time { font-size: 0.8rem; color: #6c757d; margin-top: 5px; }
+			.notification-badge {
+				background: #0d6efd; color: white; padding: 2px 8px; border-radius: 12px;
+				font-size: 0.7rem; margin-left: 10px;
+			}
+			.empty-state { text-align: center; padding: 40px; color: #6c757d; }
+		</style>
+	</head>
+	<body class="is-preload">
+		<div id="wrapper">
+			<div id="main">
+				<div class="inner">
+					<header id="header">
+						<a href="notificaciones.html" class="logo"><strong>Notificaciones</strong> Sistema de Exámenes</a>
+					</header>
+
+					<section>
+						<header class="major">
+							<h2>Mis Notificaciones</h2>
+						</header>
+						
+						<div class="box">
+							<div id="notificationsList">
+								<p id="loading">Cargando notificaciones...</p>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+
+			<!-- Sidebar -->
+			<div id="sidebar">
+				<div class="inner">
+					<nav id="menu">
+						<header class="major">
+							<h2>Menu</h2>
+						</header>
+						<ul>
+							<li><a href="../inicio.html">Inicio</a></li>
+							<li><a href="examenes.html">Examenes</a></li>
+							<li><a href="preguntas.html">Preguntas</a></li>
+							<li><a href="respuestas.html">Respuestas</a></li>
+							<li><a href="llenados.html">Llenados</a></li>
+							<li><a href="notificaciones.html">Notificaciones</a></li>
+						</ul>
+					</nav>
+				</div>
+			</div>
+		</div>
+
+		<!-- Scripts -->
+		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
+		<script src="../assets/js/main.js"></script>
+
+		<script src="../pwa-constants.js" charset="utf-8"></script>
+		<script src="../pwa-installer.js" charset="utf-8"></script>
+		<script src="../pwa-sw.js" charset="utf-8"></script>
+		<script src="../pwa-network.js" charset="utf-8"></script>
+
+		<script>
+			function renderNotificaciones(data) {
+				const container = document.getElementById('notificationsList');
+				const loading = document.getElementById('loading');
+				
+				if (loading) {
+					loading.style.display = 'none';
+				}
+
+				if (!data || data.length === 0) {
+					container.innerHTML = `
+						<div class="empty-state">
+							<h3>No hay notificaciones</h3>
+							<p>Las notificaciones aparecerán aquí cuando tengas nuevas actualizaciones.</p>
+						</div>
+					`;
+					return;
+				}
+
+				container.innerHTML = '';
+				data.forEach(notif => {
+					const clase = notif.leida == 1 ? 'read' : 'unread';
+					const badge = notif.leida == 0 ? '<span class="notification-badge">Nuevo</span>' : '';
+					
+					const card = document.createElement('div');
+					card.className = 'notification-item ' + clase;
+					card.id = 'notif-' + notif.idNotificacion;
+					card.innerHTML = `
+						<strong>${notif.titulo} ${badge}</strong>
+						<p style="margin:10px 0;">${notif.mensaje}</p>
+						<div class="notification-time">${notif.fecha_creacion}</div>
+					`;
+					container.appendChild(card);
+				});
+			}
+
+			function cargarNotificaciones() {
+				const loading = document.getElementById('loading');
+
+				fetch('../api/notificaciones.php')
+					.then(response => {
+						if (!response.ok) throw new Error(`HTTP ${response.status}`);
+						return response.json();
+					})
+					.then(data => {
+						if (data.success && data.data) {
+							localStorage.setItem('notificacionesCache', JSON.stringify(data.data));
+							renderNotificaciones(data.data);
+						} else {
+							renderNotificaciones([]);
+						}
+					})
+					.catch(error => {
+						console.warn('Sin conexión o error Cloudflare:', error.message);
+						if (loading) {
+							loading.innerHTML = '✓ Estás offline - Mostrando notificaciones en caché';
+						}
+
+						const cache = JSON.parse(localStorage.getItem('notificacionesCache') || '[]');
+						if (cache.length > 0) {
+							renderNotificaciones(cache);
+						} else {
+							renderNotificaciones([]);
+						}
+					});
+			}
+
+
+			document.addEventListener('DOMContentLoaded', cargarNotificaciones);
+		</script>
+	</body>
+</html>

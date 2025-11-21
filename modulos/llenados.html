@@ -1,0 +1,350 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Llenados</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#0d6efd">
+    <link rel="stylesheet" href="../assets/css/main.css" />
+    <link rel="manifest" href="../manifest.json">
+    <link rel="icon" href="../favicon.ico" sizes="128x128">
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="apple-touch-icon" href="../favicon.ico">
+    <style>
+        .table-wrapper { overflow-x: auto; margin: 1rem 0; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; font-weight: bold; }
+        tr:hover { background-color: #f5f5f5; }
+        .loading, .empty-state { text-align: center; padding: 2rem; color: #6c757d; }
+        form { margin-bottom: 1rem; }
+        form input { margin: 0.3rem 0; padding: 0.5rem; width: 100%; }
+        form button { padding: 0.5rem 1rem; margin-top: 0.5rem; }
+    </style>
+</head>
+<body class="is-preload">
+
+<div id="wrapper">
+    <div id="main">
+        <div class="inner">
+            <header id="header" style="margin-bottom: -40px;">
+                <a href="llenados.html" class="logo"><strong>Modulo 4</strong> Llenados</a>
+            </header>
+
+            <section>
+                <header class="major"><h2>Llenados de Exámenes</h2></header>
+                <form id="formLlenado">
+                    <label>Clave:</label>
+                    <input type="text" id="clave" required>
+                    <label>ID Respuesta:</label>
+                    <input type="number" id="idRespuesta" required>
+                    <button type="submit">Guardar</button>
+                </form>
+
+                <p id="estado"></p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Clave</th>
+                                <th>Respuesta</th>
+                                <th>Eliminar</th>
+								<th>Editar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="llenadosBody">
+                            <tr>
+                                <td colspan="4" class="loading">Cargando llenados...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div class="inner">
+            <nav id="menu">
+                <header class="major"><h2>Menu</h2></header>
+                <ul>
+                    <li><a href="../inicio.html">Inicio</a></li>
+                    <li><a href="examenes.html">Examenes</a></li>
+                    <li><a href="preguntas.html">Preguntas</a></li>
+                    <li><a href="respuestas.html">Respuestas</a></li>
+                    <li><a href="llenados.html">Llenados</a></li>
+                    <li><a href="notificaciones.html">Notificaciones</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script src="../assets/js/jquery.min.js"></script>
+<script src="../assets/js/browser.min.js"></script>
+<script src="../assets/js/breakpoints.min.js"></script>
+<script src="../assets/js/util.js"></script>
+<script src="../assets/js/main.js"></script>
+
+<script src="../pwa-constants.js" charset="utf-8"></script>
+<script src="../pwa-installer.js" charset="utf-8"></script>
+<script src="../pwa-sw.js" charset="utf-8"></script>
+<script src="../pwa-network.js" charset="utf-8"></script>
+
+<script>
+	const PENDING_KEY = "llenadosPendientes";
+	const SYNC_LLENADOS_TAG = "sync-llenados-pendientes";
+	const DELETE_PENDING_KEY = "llenadosEliminarPendientes";
+
+	const UPDATE_KEY = "llenadosEditPendientes";
+	const SYNC_UPDATE_TAG = "sync-llenados-update";
+
+	async function cargarLlenados() {
+    const tbody = document.getElementById('llenadosBody');
+    tbody.innerHTML = '<tr><td colspan="4" class="loading">Cargando llenados...</td></tr>';
+
+    try {
+        const response = await fetch('../api/llenados.php');
+        
+        // Si Cloudflare devuelve 530 u otro error HTTP
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+
+        if (data.success && data.data && data.data.length > 0) {
+            // Guardamos copia local para modo offline
+            localStorage.setItem("llenadosCache", JSON.stringify(data.data));
+            renderLlenados(data.data, tbody);
+        } else {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No hay datos</td></tr>';
+        }
+    } catch (error) {
+        console.warn("Sin conexión o error Cloudflare:", error.message);
+        // Intentamos cargar datos guardados
+        const cache = JSON.parse(localStorage.getItem("llenadosCache") || "[]");
+        if (cache.length > 0) {
+            renderLlenados(cache, tbody);
+        } else {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Sin conexión y sin datos guardados</td></tr>';
+        }
+    }
+}
+
+function renderLlenados(lista, tbody) {
+    tbody.innerHTML = '';
+    lista.forEach(llenado => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${llenado.idLlenado || 'error'}</td>
+            <td>${llenado.Clave || 'error'}</td>
+            <td>${llenado.respuesta || 'error'}</td>
+            <td><button onclick="eliminarLlenado(${llenado.idLlenado})">Eliminar</button></td>
+            <td><button onclick="editarLlenado(${llenado.idLlenado})">Editar</button></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+
+	function guardarOffline(llenado) {
+		const pendientes = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+		pendientes.push(llenado);
+		localStorage.setItem(PENDING_KEY, JSON.stringify(pendientes));
+	}
+
+	async function sincronizarPendientes() {
+		const pendientes = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+		if (pendientes.length === 0) return;
+
+		const sincronizados = [];
+		for (const llenado of pendientes) {
+			try {
+				const res = await fetch('../api/llenados_create.php', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(llenado)
+				});
+				const data = await res.json();
+				if (data.success) sincronizados.push(llenado);
+			} catch(e) {}
+		}
+
+		const nuevoPendientes = pendientes.filter(p => !sincronizados.includes(p));
+		localStorage.setItem(PENDING_KEY, JSON.stringify(nuevoPendientes));
+		cargarLlenados();
+	}
+
+	function guardarEliminarOffline(idLlenado) {
+		const pendientes = JSON.parse(localStorage.getItem(DELETE_PENDING_KEY) || "[]");
+		pendientes.push({ idLlenado });
+		localStorage.setItem(DELETE_PENDING_KEY, JSON.stringify(pendientes));
+
+		if ('serviceWorker' in navigator && 'SyncManager' in window) {
+			navigator.serviceWorker.ready.then(reg => {
+				reg.sync.register(SYNC_DELETE_LLENADOS_TAG);
+				if (navigator.serviceWorker.controller) {
+					navigator.serviceWorker.controller.postMessage({
+						action: 'syncEliminarLlenados',
+						pendientes: pendientes
+					});
+				}
+			});
+		}
+	}
+
+	function guardarEdicionOffline(llenado) {
+		const pendientes = JSON.parse(localStorage.getItem(UPDATE_KEY) || "[]");
+		const index = pendientes.findIndex(p => p.idLlenado === llenado.idLlenado);
+
+		if (index !== -1) {
+			pendientes[index] = llenado;
+		} else {
+			pendientes.push(llenado);
+		}
+
+		localStorage.setItem(UPDATE_KEY, JSON.stringify(pendientes));
+
+		if ('serviceWorker' in navigator && 'SyncManager' in window) {
+			navigator.serviceWorker.ready.then(reg => {
+				reg.sync.register(SYNC_UPDATE_TAG);
+			});
+		}
+	}
+
+	async function sincronizarEdicionesPendientes() {
+		const pendientes = JSON.parse(localStorage.getItem(UPDATE_KEY) || "[]");
+		if (pendientes.length === 0) return;
+
+		const sincronizados = [];
+
+		for (const llenado of pendientes) {
+			try {
+				const res = await fetch('../api/llenados_update.php', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(llenado)
+				});
+				const data = await res.json();
+				if (data.success) sincronizados.push(llenado);
+			} catch(e) {
+				console.warn("Error al sincronizar edición:", e);
+			}
+		}
+
+		const nuevosPendientes = pendientes.filter(p => 
+			!sincronizados.some(s => s.idLlenado === p.idLlenado)
+		);
+		localStorage.setItem(UPDATE_KEY, JSON.stringify(nuevosPendientes));
+		if (sincronizados.length > 0) cargarLlenados();
+	}
+
+	async function eliminarLlenado(idLlenado) {
+		if (!navigator.onLine) {
+			guardarEliminarOffline(idLlenado);
+			alert("Sin conexión. Llenado marcado para eliminar offline.");
+			cargarLlenados();
+			return;
+		}
+
+		try {
+			const res = await fetch('../api/llenados_delete.php', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ idLlenado })
+			});
+			const data = await res.json();
+			if (data.success) {
+				alert("Llenado eliminado correctamente.");
+				cargarLlenados();
+			} else throw new Error(data.error || "Error al eliminar");
+		} catch(err) {
+			console.error(err);
+			guardarEliminarOffline(idLlenado);
+			alert("Error al eliminar. Guardado para sincronización offline.");
+			cargarLlenados();
+		}
+	}
+
+	function editarLlenado(idLlenado) {
+		const clave = prompt("Ingrese nueva clave:");
+		const idRespuesta = prompt("Ingrese nuevo ID de respuesta:");
+
+		if (!clave || !idRespuesta) return;
+
+		const llenadoEdit = { idLlenado, Clave: clave, idRespuesta };
+
+		if (!navigator.onLine) {
+			guardarEdicionOffline(llenadoEdit);
+			alert("Sin conexión. Edición guardada offline.");
+			return;
+		}
+
+		fetch('../api/llenados_update.php', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(llenadoEdit)
+		})
+		.then(res => res.json())
+		.then(data => {
+			if (data.success) {
+				alert("Llenado actualizado correctamente.");
+				cargarLlenados();
+			} else {
+				throw new Error(data.error || "Error al actualizar");
+			}
+		})
+		.catch(err => {
+			console.error(err);
+			guardarEdicionOffline(llenadoEdit);
+			alert("Error de red. Edición guardada offline.");
+		});
+	}
+
+	document.getElementById("formLlenado").addEventListener("submit", async e => {
+		e.preventDefault();
+		const clave = document.getElementById("clave").value.trim();
+		const idRespuesta = document.getElementById("idRespuesta").value.trim();
+		const llenado = { Clave: clave, idRespuesta };
+		const estado = document.getElementById("estado");
+
+		if (!navigator.onLine) {
+			guardarOffline(llenado);
+			estado.textContent = "Sin conexión. Llenado guardado offline.";
+			estado.style.color = "orange";
+			return;
+		}
+
+		try {
+			const res = await fetch('../api/llenados_create.php', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(llenado)
+			});
+			const data = await res.json();
+			if (data.success) {
+				estado.textContent = "Llenado insertado correctamente.";
+				estado.style.color = "green";
+				document.getElementById("formLlenado").reset();
+				await sincronizarPendientes();
+				cargarLlenados();
+			} else throw new Error(data.error || "Error al insertar");
+		} catch(err) {
+			console.error(err);
+			estado.textContent = "Error: " + err.message + ". Guardado offline.";
+			estado.style.color = "red";
+			guardarOffline(llenado);
+		}
+	});
+
+	window.addEventListener("online", async () => {
+		await sincronizarPendientes();
+		await sincronizarEdicionesPendientes();
+	});
+
+
+	document.addEventListener('DOMContentLoaded', cargarLlenados);
+</script>
+</body>
+</html>

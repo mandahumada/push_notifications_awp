@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<title>Nuevo Examen</title>
+	<link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+	<section>
+		<h2>Nuevo Examen</h2>
+		<form id="formExamen">
+			<label>Título:</label>
+			<input type="text" id="tituloExamen" required><br>
+			<label>Descripción:</label>
+			<textarea id="descripcion"></textarea><br>
+			<button type="submit">Guardar</button>
+		</form>
+		<p id="estado"></p>
+	</section>
+
+	<script src="../assets/js/jquery.min.js"></script>
+	<script>
+		const API_URL = "../api/examenes_create.php";
+		const PENDING_KEY = "examenesPendientes";
+
+		async function limpiarCacheExamenes() {
+			if ('caches' in window) {
+				const cache = await caches.open('practica1awp-data-v1');
+				const cacheKeys = await cache.keys();
+				
+				for (const request of cacheKeys) {
+					if (request.url.includes('examenes.php')) {
+						await cache.delete(request);
+						console.log('cache de examenes.php eliminado');
+					}
+				}
+			}
+		}
+
+		function guardarOffline(examen) {
+			let pendientes = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+			pendientes.push(examen);
+			localStorage.setItem(PENDING_KEY, JSON.stringify(pendientes));
+			console.log("Examen guardado offline:", examen);
+		}
+
+		async function sincronizarPendientes() {
+			const pendientes = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+			
+			if (pendientes.length === 0) {
+				console.log("No hay examenes pendientes");
+				return false;
+			}
+
+			console.log(`Sincronizando ${pendientes.length} examen(es) pendiente(s)...`);
+			
+			let sincronizados = [];
+			
+			for (const examen of pendientes) {
+				try {
+					const res = await fetch(API_URL, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(examen)
+					});
+					
+					const data = await res.json();
+					
+					if (data.success) {
+						console.log("✓ Examen sincronizado:", examen.tituloExamen);
+						sincronizados.push(examen);
+					} else {
+						console.error("Error al sincronizar:", data.error);
+					}
+				} catch (err) {
+					console.warn("No se pudo sincronizar aún:", err);
+					return false;
+				}
+			}
+
+			if (sincronizados.length > 0) {
+				let nuevoPendientes = pendientes.filter(p => !sincronizados.includes(p));
+				localStorage.setItem(PENDING_KEY, JSON.stringify(nuevoPendientes));
+				
+				await limpiarCacheExamenes();
+				
+				console.log(`🧹 ${sincronizados.length} examen(es) sincronizado(s) correctamente`);
+				return true;
+			}
+			
+			return false;
+		}
+
+		window.addEventListener("online", async () => {
+			console.log("conexion restaurada, sincronizando...");
+			const sincronizado = await sincronizarPendientes();
+			
+			if (sincronizado) {
+				const estado = document.getElementById("estado");
+				if (estado) {
+					estado.textContent = "examenes sincronizados automaticamente. Redirigiendo...";
+					estado.style.color = "green";
+				}
+				
+				setTimeout(() => {
+					window.location.href = "examenes.html";
+				}, 1500);
+			}
+		});
+
+		document.getElementById("formExamen").addEventListener("submit", async e => {
+			e.preventDefault();
+			
+			const titulo = document.getElementById("tituloExamen").value.trim();
+			const descripcion = document.getElementById("descripcion").value.trim();
+			const estado = document.getElementById("estado");
+			const examen = { tituloExamen: titulo, descripcion };
+
+			if (!navigator.onLine) {
+				guardarOffline(examen);
+				estado.textContent = "Sin conexion. Examen guardado offline. Se sincronizará automáticamente al volver online.";
+				estado.style.color = "orange";
+				
+				if ('serviceWorker' in navigator && 'SyncManager' in window) {
+					try {
+						const reg = await navigator.serviceWorker.ready;
+						await reg.sync.register('sync-examenes-pendientes');
+						console.log("Background Sync registrado");
+					} catch(err) {
+						console.warn("Background Sync no disponible:", err);
+					}
+				}
+				
+				setTimeout(() => {
+					window.location.href = "examenes.html";
+				}, 2000);
+				
+				return;
+			}
+
+			try {
+				const res = await fetch(API_URL, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(examen)
+				});
+				
+				const data = await res.json();
+				
+				if (data.success) {
+					estado.textContent = "Examen insertado correctamente.";
+					estado.style.color = "green";
+					
+					await sincronizarPendientes();
+					
+					await limpiarCacheExamenes();
+					
+					setTimeout(() => {
+						window.location.href = "examenes.html";
+					}, 1000);
+				} else {
+					throw new Error(data.error || "Error al insertar");
+				}
+			} catch (err) {
+				console.error("Error:", err);
+				estado.textContent = "Error: " + err.message + ". Guardado offline.";
+				estado.style.color = "red";
+				guardarOffline(examen);
+				
+				setTimeout(() => {
+					window.location.href = "examenes.html";
+				}, 2000);
+			}
+		});
+
+		window.addEventListener("load", async () => {
+			const pendientes = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+			
+			if (pendientes.length > 0) {
+				const estado = document.getElementById("estado");
+				estado.textContent = `⏳ Hay ${pendientes.length} examen(es) pendiente(s) de sincronizar`;
+				estado.style.color = "blue";
+				
+				if (navigator.onLine) {
+					const sincronizado = await sincronizarPendientes();
+					if (sincronizado) {
+						estado.textContent = "Exámenes sincronizados correctamente";
+						estado.style.color = "green";
+					}
+				}
+			}
+		});
+	</script>
+</body>
+</html>

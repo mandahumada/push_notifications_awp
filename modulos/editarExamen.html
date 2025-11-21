@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Examen</title>
+    <link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+    <section>
+        <h2>Editar Examen</h2>
+        <form id="formEditar">
+            <input type="hidden" id="idExamen" />
+            <label>Título:</label>
+            <input type="text" id="tituloExamen" required><br>
+            <label>Descripción:</label>
+            <textarea id="descripcion"></textarea><br>
+            <button type="submit">Guardar cambios</button>
+        </form>
+        <p id="estado"></p>
+    </section>
+
+    <script>
+        const API_UPDATE_URL = "../api/examenes_update.php";
+        const UPDATE_KEY = "examenes_edit_pendientes";
+
+        const params = new URLSearchParams(window.location.search);
+        const examenId = params.get("id");
+        document.getElementById("idExamen").value = examenId;
+
+        async function limpiarCacheExamenes() {
+            if ('caches' in window) {
+                const cache = await caches.open('practica1awp-data-v1');
+                const cacheKeys = await cache.keys();
+                
+                for (const request of cacheKeys) {
+                    if (request.url.includes('examenes.php') || request.url.includes('examenes_get.php')) {
+                        await cache.delete(request);
+                        console.log('🗑️ Caché eliminado:', request.url);
+                    }
+                }
+            }
+        }
+
+        async function cargarExamen() {
+            const estado = document.getElementById("estado");
+            
+            if (navigator.onLine) {
+                try {
+                    const res = await fetch(`../api/examenes_get.php?id=${examenId}`, {
+                        cache: 'no-cache'
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success && data.data) {
+                        document.getElementById("tituloExamen").value = data.data.tituloExamen;
+                        document.getElementById("descripcion").value = data.data.descripcion;
+                        
+                        localStorage.setItem(`examen_${examenId}`, JSON.stringify(data.data));
+                        return;
+                    } else {
+                        estado.textContent = "Error al cargar el examen.";
+                        estado.style.color = "red";
+                    }
+                } catch (e) {
+                    console.warn("Error de red, intentando cargar desde cache...", e);
+                }
+            }
+            
+            const cached = localStorage.getItem(`examen_${examenId}`);
+            if (cached) {
+                try {
+                    const examen = JSON.parse(cached);
+                    document.getElementById("tituloExamen").value = examen.tituloExamen;
+                    document.getElementById("descripcion").value = examen.descripcion;
+                    estado.textContent = "Modo offline - datos cargados desde cache";
+                    estado.style.color = "orange";
+                } catch (e) {
+                    estado.textContent = "Error al cargar datos del caché.";
+                    estado.style.color = "red";
+                }
+            } else {
+                const todosExamenes = localStorage.getItem('examenes_cache');
+                if (todosExamenes) {
+                    try {
+                        const examenes = JSON.parse(todosExamenes);
+                        const examen = examenes.find(e => e.idExamen == examenId);
+                        if (examen) {
+                            document.getElementById("tituloExamen").value = examen.tituloExamen;
+                            document.getElementById("descripcion").value = examen.descripcion;
+                            estado.textContent = "Modo offline - datos cargados desde caché";
+                            estado.style.color = "orange";
+                            return;
+                        }
+                    } catch (e) {
+                        console.error("Error al parsear caché de exámenes:", e);
+                    }
+                }
+                
+                estado.textContent = "No hay conexión y no hay datos en caché. Conéctate primero para cargar el examen.";
+                estado.style.color = "red";
+            }
+        }
+
+        cargarExamen();
+
+        function guardarEdicionOffline(data) {
+            let pendientes = JSON.parse(localStorage.getItem(UPDATE_KEY) || "[]");
+            
+            const index = pendientes.findIndex(p => p.idExamen === data.idExamen);
+            if (index !== -1) {
+                pendientes[index] = data;
+            } else {
+                pendientes.push(data);
+            }
+            
+            localStorage.setItem(UPDATE_KEY, JSON.stringify(pendientes));
+            console.log("Edición guardada offline:", data);
+        }
+
+        async function sincronizarEdiciones() {
+            const pendientes = JSON.parse(localStorage.getItem(UPDATE_KEY) || "[]");
+            
+            if (pendientes.length === 0) {
+                console.log("No hay ediciones pendientes");
+                return false;
+            }
+
+            console.log(`📡 Sincronizando ${pendientes.length} edición(es) pendiente(s)...`);
+            
+            let sincronizados = [];
+
+            for (const examen of pendientes) {
+                try {
+                    const res = await fetch(API_UPDATE_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(examen)
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        console.log("Examen editado:", examen.idExamen);
+                        sincronizados.push(examen);
+                    } else {
+                        console.error("Error al sincronizar:", data.error);
+                    }
+                } catch (err) {
+                    console.warn("No se pudo sincronizar aún:", err);
+                    return false;
+                }
+            }
+
+            if (sincronizados.length > 0) {
+                let nuevosPendientes = pendientes.filter(p => !sincronizados.some(s => s.idExamen === p.idExamen));
+                localStorage.setItem(UPDATE_KEY, JSON.stringify(nuevosPendientes));
+                
+                await limpiarCacheExamenes();
+                
+                console.log(`🧹 ${sincronizados.length} edición(es) sincronizada(s) correctamente`);
+                return true;
+            }
+
+            return false;
+        }
+
+        window.addEventListener("online", async () => {
+            console.log("Conexión restaurada, sincronizando ediciones...");
+            
+            const estado = document.getElementById("estado");
+            estado.textContent = "Sincronizando ediciones pendientes...";
+            estado.style.color = "blue";
+            
+            const sincronizado = await sincronizarEdiciones();
+            
+            if (sincronizado) {
+                estado.textContent = "Ediciones sincronizadas. Redirigiendo...";
+                estado.style.color = "green";
+                
+                setTimeout(() => {
+                    window.location.href = "examenes.html";
+                }, 1500);
+            }
+        });
+
+        document.getElementById("formEditar").addEventListener("submit", async e => {
+            e.preventDefault();
+            
+            const idExamen = document.getElementById("idExamen").value;
+            const tituloExamen = document.getElementById("tituloExamen").value.trim();
+            const descripcion = document.getElementById("descripcion").value.trim();
+            const estado = document.getElementById("estado");
+
+            const examen = { idExamen, tituloExamen, descripcion };
+
+            if (!navigator.onLine) {
+                guardarEdicionOffline(examen);
+                estado.textContent = "Sin conexión. Cambios guardados offline. Se sincronizarán automáticamente al volver online.";
+                estado.style.color = "orange";
+                
+                if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                    try {
+                        const reg = await navigator.serviceWorker.ready;
+                        await reg.sync.register('sync-examenes-update');
+                        console.log("🔄 Background Sync registrado para ediciones");
+                    } catch(err) {
+                        console.warn("Background Sync no disponible:", err);
+                    }
+                }
+                
+                setTimeout(() => {
+                    window.location.href = "examenes.html";
+                }, 2000);
+                
+                return;
+            }
+
+            try {
+                const res = await fetch(API_UPDATE_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(examen)
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    estado.textContent = "Examen actualizado correctamente.";
+                    estado.style.color = "green";
+                    
+                    await sincronizarEdiciones();
+                    
+                    await limpiarCacheExamenes();
+            
+                    setTimeout(() => {
+                        window.location.href = "examenes.html";
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || "Error desconocido");
+                }
+            } catch (err) {
+                console.error("Error:", err);
+                estado.textContent = "Error: " + err.message + ". Guardado offline.";
+                estado.style.color = "red";
+                guardarEdicionOffline(examen);
+                
+                setTimeout(() => {
+                    window.location.href = "examenes.html";
+                }, 2000);
+            }
+        });
+
+        window.addEventListener("load", async () => {
+            const pendientes = JSON.parse(localStorage.getItem(UPDATE_KEY) || "[]");
+            
+            if (pendientes.length > 0) {
+                const estado = document.getElementById("estado");
+                estado.textContent = `Hay ${pendientes.length} edición(es) pendiente(s) de sincronizar`;
+                estado.style.color = "blue";
+                
+                if (navigator.onLine) {
+                    const sincronizado = await sincronizarEdiciones();
+                    if (sincronizado) {
+                        estado.textContent = "✓ Ediciones sincronizadas correctamente";
+                        estado.style.color = "green";
+                    }
+                }
+            }
+        });
+
+        if (navigator.onLine) {
+            sincronizarEdiciones();
+        }
+    </script>
+</body>
+</html>

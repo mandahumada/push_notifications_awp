@@ -1,0 +1,236 @@
+<!DOCTYPE HTML>
+<html>  
+<head>
+    <title>Preguntas</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <link rel="stylesheet" href="../assets/css/main.css" />
+    <meta name="theme-color" content="#0d6efd">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="icon" href="../favicon.ico" sizes="128x128">
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="apple-touch-icon" href="../favicon.ico">
+    <style>
+        .question-card {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.2rem;
+            color: #6c757d;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body class="is-preload">
+
+<div id="wrapper">
+    <div id="main">
+        <div class="inner">
+
+            <header id="header" style="margin-bottom: -40px;">
+                <a href="preguntas.html" class="logo"><strong>Modulo 1</strong> Preguntas</a>
+            </header>
+
+            <section>
+                <section id="banner">
+                    <div class="content">
+                        <header>
+                            <h1>Gestión de Preguntas</h1>
+                            <p>Administración completa de preguntas y respuestas</p>
+                        </header>
+                        <p>Desde aquí puedes crear nuevas preguntas, modificar las existentes, y gestionar las respuestas correctas para cada examen.</p>
+                    </div>
+                </section>
+                    
+                <div class="col-6 col-12-medium">
+                    <ul class="actions" style="justify-content: end; margin-top: 1rem;">
+                        <li><a href="#" id="btnCrearPregunta" class="button primary icon solid fa-plus">Nueva Pregunta</a></li>
+                    </ul>
+                </div>
+
+                <div id="preguntasList">
+                    <div class="loading">Cargando preguntas...</div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div class="inner">
+            <nav id="menu">
+                <header class="major">
+                    <h2>Menu</h2>
+                </header>
+                <ul>
+                    <li><a href="../inicio.html">Inicio</a></li>
+                    <li><a href="examenes.html">Examenes</a></li>
+                    <li><a href="preguntas.html">Preguntas</a></li>
+                    <li><a href="respuestas.html">Respuestas</a></li>
+                    <li><a href="llenados.html">Llenados</a></li>
+                    <li><a href="notificaciones.html">Notificaciones</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script src="../assets/js/jquery.min.js"></script>
+<script src="../assets/js/browser.min.js"></script>
+<script src="../assets/js/breakpoints.min.js"></script>
+<script src="../assets/js/util.js"></script>
+<script src="../assets/js/main.js"></script>
+
+<script src="../pwa-constants.js" charset="utf-8"></script>
+<script src="../pwa-installer.js" charset="utf-8"></script>
+<script src="../pwa-sw.js" charset="utf-8"></script>
+<script src="../pwa-network.js" charset="utf-8"></script>
+
+<script>
+const container = document.getElementById('preguntasList');
+const urlParams = new URLSearchParams(window.location.search);
+const idExamen = urlParams.get('idExamen'); 
+
+async function cargarPreguntas() {
+    const loadingElement = container.querySelector('.loading');
+    if (loadingElement) {
+        loadingElement.style.display = 'block';
+        loadingElement.innerHTML = 'Cargando preguntas...';
+    }
+
+    if (!idExamen) {
+        container.innerHTML = '<div class="empty-state"><p>No se especificó un examen.</p></div>';
+        console.warn('No se recibió idExamen en la URL');
+        if (loadingElement) loadingElement.style.display = 'none';
+        return;
+    }
+
+    // CAMBIO: La URL del endpoint de la API de preguntas.php
+    const endpoint = `/awpp1/api/preguntas.php?idExamen=${idExamen}`;
+    const absoluteUrl = new URL(endpoint, location.origin).href; 
+
+    console.log('Intentando cargar preguntas desde API:', absoluteUrl);
+
+    try {
+        const res = await fetch(absoluteUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const preguntasObj = await res.json();
+        console.log('Preguntas desde API:', preguntasObj);
+
+        if (preguntasObj.success && preguntasObj.data.length > 0) {
+            renderizarPreguntas(preguntasObj.data);
+            localStorage.setItem(`preguntas_examen_${idExamen}`, JSON.stringify(preguntasObj.data));
+            console.log('Preguntas guardadas en localStorage');
+            if (loadingElement) loadingElement.style.display = 'none';
+            return;
+        } else {
+            console.log('No hay preguntas en la respuesta de la API:', preguntasObj);
+        }
+    } catch (err) {
+        console.warn('Error fetch API:', err);
+    }
+
+    try {
+        const cache = await caches.open('practica1awp-data-v1');
+        const cachedResponse = await cache.match(absoluteUrl);
+        if (cachedResponse) {
+            const preguntasCache = await cachedResponse.json();
+            console.log('Preguntas desde cache SW:', preguntasCache);
+            renderizarPreguntas(preguntasCache.data || []);
+            
+            if (loadingElement) {
+                loadingElement.innerHTML = `<p style="color: orange;">Sin conexión: mostrando datos guardados.</p>`;
+                loadingElement.style.display = 'block';
+            }
+            return;
+        }
+    } catch (err) {
+        console.warn('Error accediendo al cache del SW:', err);
+    }
+
+    try {
+        const cachedLocal = localStorage.getItem(`preguntas_examen_${idExamen}`);
+        if (cachedLocal) {
+            const data = JSON.parse(cachedLocal);
+            console.log('Preguntas desde localStorage:', data);
+            renderizarPreguntas(data);
+            if (loadingElement) {
+                loadingElement.innerHTML = `<p style="color: orange;">Sin conexión: mostrando datos guardados (LocalStorage).</p>`;
+                loadingElement.style.display = 'block';
+            }
+            return;
+        }
+    } catch (err) {
+        console.warn('Error leyendo localStorage:', err);
+    }
+
+    container.innerHTML = '<div class="empty-state"><p>Sin conexión y no hay datos disponibles.</p></div>';
+    console.warn('No se pudieron cargar preguntas desde API, cache ni localStorage.');
+    if (loadingElement) loadingElement.style.display = 'none';
+}
+
+
+function renderizarPreguntas(preguntas) {
+    container.innerHTML = '';
+    if (!preguntas || preguntas.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No hay preguntas para este examen.</p></div>';
+        return;
+    }
+    preguntas.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'question-card';
+        card.innerHTML = `
+            <h4>Pregunta ID: ${p.idPregunta || 'Pendiente'}</h4> <!-- CAMBIO: ID de Pregunta -->
+            <small><strong>Valor:</strong> ${p.valor} pts</small>
+            <p style="margin-top: 1rem;"><strong>Pregunta:</strong> ${p.pregunta}</p>
+        `;
+        container.appendChild(card);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const btnCrear = document.getElementById('btnCrearPregunta');
+    if (btnCrear) {
+        if (idExamen) {
+            btnCrear.href = `crearPregunta.html?idExamen=${idExamen}`;
+        } else {
+            btnCrear.style.display = 'none';
+            console.warn('No se pudo establecer el enlace para crear nueva pregunta: idExamen no disponible.');
+        }
+    }
+
+    cargarPreguntas();
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data && event.data.action === 'preguntasSincronizadas' && event.data.idExamenSincronizado == idExamen) {
+                console.log('Mensaje del SW: Preguntas sincronizadas para este examen, recargando...');
+                localStorage.removeItem(`preguntas_examen_${idExamen}`);
+                cargarPreguntas();
+
+                const loadingElement = container.querySelector('.loading');
+                if (loadingElement) {
+                    loadingElement.innerHTML = '<p style="color: green;">Preguntas pendientes sincronizadas y lista actualizada.</p>';
+                    loadingElement.style.display = 'block';
+                    setTimeout(() => {
+                        loadingElement.style.display = 'none';
+                    }, 3000);
+                }
+            }
+        });
+    }
+});
+</script>
+
+</body>
+</html>

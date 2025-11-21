@@ -1,0 +1,193 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>Crear Pregunta</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+        <link rel="stylesheet" href="../assets/css/main.css" />
+        <meta name="theme-color" content="#0d6efd">
+        <link rel="manifest" href="../manifest.json">
+        <link rel="icon" href="../favicon.ico" sizes="128x128">
+        <link rel="shortcut icon" href="../favicon.ico">
+        <link rel="apple-touch-icon" href="../favicon.ico">
+    </head>
+
+    <body class="is-preload">
+        <div id="wrapper">
+            <div id="main">
+                <div class="inner">
+                    <header id="header" style="margin-bottom: -40px;">
+                        <a href="preguntas.html" class="logo"><strong>Modulo 1</strong> Crear Pregunta</a>
+                    </header>
+
+                    <section>
+                        <form id="crearPreguntaForm">
+                            <div class="row gtr-uniform">
+                                <div class="col-12">
+                                    <input type="hidden" id="idExamen" name="idExamen">
+                                    <label for="pregunta">Texto de la Pregunta:</label>
+                                    <textarea name="pregunta" id="pregunta" placeholder="Escribe tu pregunta aquí" rows="6" required></textarea>
+                                </div>
+                                <div class="col-6 col-12-small">
+                                    <label for="valor">Valor (puntos):</label>
+                                    <input type="number" name="valor" id="valor" value="1" min="1" required />
+                                </div>
+                                <div class="col-12">
+                                    <ul class="actions">
+                                        <li><input type="submit" value="Guardar Pregunta" class="primary" /></li>
+                                        <li><input type="reset" value="Reset" /></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </form>
+                        <p id="message" style="margin-top: 1rem;"></p>
+                    </section>
+                </div>
+            </div>
+
+            <div id="sidebar">
+                <div class="inner">
+                    <nav id="menu">
+                        <header class="major">
+                            <h2>Menu</h2>
+                        </header>
+                        <ul>
+                            <li><a href="../inicio.html">Inicio</a></li>
+                            <li><a href="examenes.html">Examenes</a></li>
+                            <li><a href="preguntas.html">Preguntas</a></li>
+                            <li><a href="respuestas.html">Respuestas</a></li>
+                            <li><a href="llenados.html">Llenados</a></li>
+                            <li><a href="notificaciones.html">Notificaciones</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <script src="../assets/js/jquery.min.js"></script>
+        <script src="../assets/js/browser.min.js"></script>
+        <script src="../assets/js/breakpoints.min.js"></script>
+        <script src="../assets/js/util.js"></script>
+        <script src="../assets/js/main.js"></script>
+
+        <script src="../pwa-constants.js" charset="utf-8"></script>
+        <script src="../pwa-installer.js" charset="utf-8"></script>
+        <script src="../pwa-sw.js" charset="utf-8"></script>
+        <script src="../pwa-network.js" charset="utf-8"></script>
+
+        <script>
+            // --- CONSTANTES GLOBALES (ASEGÚRATE DE QUE ESTAS TAMBIÉN ESTÉN EN TU PWA-SW.JS) ---
+            const API_URL_PREGUNTAS_CREATE = "../api/preguntas_create.php";
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const idExamen = urlParams.get('idExamen');
+                
+                if (idExamen) {
+                    document.getElementById('idExamen').value = idExamen;
+                } else {
+                    document.querySelector('form').innerHTML = '<p>Error: No se ha especificado el ID del examen.</p>';
+                    return; // No permitir enviar el formulario si no hay idExamen
+                }
+
+                document.getElementById('crearPreguntaForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const form = e.target;
+                    const formData = new FormData(form);
+                    const preguntaData = Object.fromEntries(formData.entries());
+
+                    const dataToSend = {
+                        idExamen: preguntaData.idExamen,
+                        pregunta: preguntaData.pregunta,
+                        valor: preguntaData.valor
+                    };
+
+                    const messageElement = document.getElementById('message');
+                    messageElement.textContent = ''; 
+                    messageElement.style.color = '';
+
+                    console.log("Estado de conexión:", navigator.onLine ? "Online" : "Offline");
+
+                    if (navigator.onLine) {
+                        // --- LÓGICA ONLINE ---
+                        try {
+                            const res = await fetch(API_URL_PREGUNTAS_CREATE, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(dataToSend)
+                            });
+                            const data = await res.json();
+
+                            if (data.success) {
+                                messageElement.textContent = "Pregunta creada y guardada en el servidor.";
+                                messageElement.style.color = 'green';
+                                form.reset();
+                                // Opcional: limpiar caché del Service Worker para forzar actualización de la lista
+                                // if ('caches' in window) {
+                                //     const cache = await caches.open('practica1awp-data-v1'); // Usa el nombre de tu caché de datos
+                                //     const cacheKeys = await cache.keys();
+                                //     for (const request of cacheKeys) {
+                                //         if (request.url.includes('preguntas.php')) { // Elimina entradas de preguntas.php
+                                //             await cache.delete(request);
+                                //             console.log('🗑️ Caché de preguntas.php eliminado tras creación online.');
+                                //         }
+                                //     }
+                                // }
+                                setTimeout(() => window.location.href = `preguntas.html?idExamen=${idExamen}`, 1500);
+                            } else {
+                                throw new Error(data.error || "Error desconocido al guardar en el servidor.");
+                            }
+                        } catch (err) {
+                            messageElement.textContent = `Error al conectar con el servidor: ${err.message}. Intentando guardar offline.`;
+                            messageElement.style.color = 'red';
+                            console.error("Error al guardar la pregunta (ONLINE):", err);
+                            // Si falla la conexión a pesar de navigator.onLine (servidor caído, etc.),
+                            // intentamos guardar offline como fallback.
+                            guardarPreguntaOffline(dataToSend, messageElement, form, idExamen);
+                        }
+                    } else {
+                        // --- LÓGICA OFFLINE ---
+                        guardarPreguntaOffline(dataToSend, messageElement, form, idExamen);
+                    }
+                });
+            });
+
+            // Función para manejar el guardado offline
+            async function guardarPreguntaOffline(preguntaData, messageElement, form, idExamen) {
+                // Envía la pregunta al Service Worker para que la guarde en su storage (IndexedDB, etc.)
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        action: 'guardarPreguntaOffline',
+                        pregunta: preguntaData,
+                        key: PENDING_PREGUNTAS_KEY // Pasa la clave para que el SW sepa dónde guardar
+                    });
+                    console.log("Mensaje enviado al SW para guardar pregunta offline:", preguntaData);
+                } else {
+                    // Fallback si no hay SW activo o es la primera carga (guarda en localStorage)
+                    let pendientes = JSON.parse(localStorage.getItem(PENDING_PREGUNTAS_KEY) || "[]");
+                    pendientes.push(preguntaData);
+                    localStorage.setItem(PENDING_PREGUNTAS_KEY, JSON.stringify(pendientes));
+                    console.warn("SW no activo, guardando en localStorage como fallback:", preguntaData);
+                }
+                
+                messageElement.textContent = "Pregunta guardada localmente. Se sincronizará cuando haya conexión.";
+                messageElement.style.color = 'orange';
+                form.reset();
+
+                // Registra el Background Sync
+                if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                    navigator.serviceWorker.ready.then(reg => {
+                        reg.sync.register(SYNC_PREGUNTAS_TAG)
+                            .then(() => console.log('Sincronización de preguntas registrada con tag:', SYNC_PREGUNTAS_TAG))
+                            .catch(err => console.error('Error registrando sync de preguntas:', err));
+                    });
+                } else {
+                    console.warn("Background Sync API no disponible.");
+                }
+                
+                setTimeout(() => window.location.href = `preguntas.html?idExamen=${idExamen}`, 2500);
+            }
+        </script>
+    </body>
+</html>
